@@ -1,0 +1,53 @@
+environment:
+  add_noise: false
+  add_slippage: true
+  base_currency: USD
+  cash_rates:
+    USD:
+      credit: 0.05
+      debit: 0.04
+  collateral_rates:
+    LONG: 0.0
+    SHORT: 1.0
+  fee_per_share: 0.005
+  financing_rates:
+    LONG: 0.0
+    SHORT: 0.01
+  interest_settlement_frequency: MONTHLY
+  margin_rate: 0.5
+  max_fee_pct: 0.01
+  max_leverage: 4.0
+  min_fee: 1.0
+  min_weight: 0.0001
+  starting_cash: 1000000
+strategy:
+  model_config:
+    min_history: 252
+    name: dqi_multifactor
+    portfolio_constructor:
+      name: dqi_quintile
+      params:
+        long_only: true
+        n_positions: 20
+        weights_mode: hrp
+    risk_overlay:
+      name: dqi_vol_target
+      params:
+        max_leverage: 4.0
+        target_vol: 0.15
+        vol_lookback: 63
+    signal_generator:
+      name: dqi_signal
+      params:
+        regime_weights: true
+        weights_file: Data/dqi_weights_dynamic_em_style_buckets_2y.csv
+        weights_mode: dynamic
+        z_grouping: sub_industry
+  rebalance_frequency: MONTHLY
+  training_frequency: QUARTERLY
+  training_window: 504
+testing:
+  benchmark: SPY
+  end_date: '2025-12-31'
+  random_seed: 42
+  start_date: '2013-01-31'

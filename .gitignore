@@ -1,0 +1,19 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS generated files
+.DS_Store
+.DS_Store?
+Icon?
+ehthumbs.db
+Thumbs.db
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# NOTA: La carpeta data/ NO está en este gitignore porque necesitamos 
+# subir los datos procesados para el deploy en la nube.
