@@ -70,6 +70,41 @@ def capital_growth_chart(data: pd.DataFrame, domain: list[str], colors: list[str
     return _configure(chart)
 
 
+def online_em_sensitivity_chart(data: pd.DataFrame) -> alt.Chart:
+    """Median Sharpe heatmap across the visible Online EM experiment cells."""
+    chart_data = data.copy()
+    chart_data["alpha_label"] = chart_data["alpha"].map(lambda value: f"{value:.2f}")
+    chart_data["window_label"] = chart_data["training_months"].map(lambda value: f"{int(value)} meses")
+    chart_data["sharpe_label"] = chart_data["median_sharpe"].map(lambda value: f"{value:.2f}")
+    base = alt.Chart(chart_data).encode(
+        x=alt.X("alpha_label:O", title="Alpha", sort="ascending"),
+        y=alt.Y("window_label:O", title="Warm-up / entrenamiento", sort="ascending"),
+        tooltip=[
+            alt.Tooltip("alpha:Q", title="Alpha", format=".2f"),
+            alt.Tooltip("training_months:Q", title="Ventana", format=".0f"),
+            alt.Tooltip("median_sharpe:Q", title="Sharpe mediano", format=".3f"),
+            alt.Tooltip("best_cagr:Q", title="Mejor CAGR", format=".2%"),
+            alt.Tooltip("experiments:Q", title="Experimentos", format=".0f"),
+        ],
+    )
+    heatmap = base.mark_rect(cornerRadius=3).encode(
+        color=alt.Color(
+            "median_sharpe:Q",
+            title="Sharpe mediano",
+            scale=alt.Scale(scheme="bluegreen"),
+        )
+    )
+    labels = base.mark_text(fontWeight=700, fontSize=13).encode(
+        text="sharpe_label:N",
+        color=alt.condition(
+            "datum.median_sharpe > 0.9",
+            alt.value("white"),
+            alt.value(TITLE_COLOR),
+        ),
+    )
+    return _configure((heatmap + labels).properties(height=150))
+
+
 def subfactor_timeline_chart(data: pd.DataFrame) -> alt.Chart:
     active_factors = [factor for factor in FACTOR_COLORS if factor in set(data["Factor"])]
     factor_colors = [FACTOR_COLORS[factor] for factor in active_factors]

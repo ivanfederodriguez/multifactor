@@ -6,7 +6,12 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from charts import FACTOR_COLORS, capital_growth_chart, subfactor_comparison_bar_chart
+from charts import (
+    FACTOR_COLORS,
+    capital_growth_chart,
+    online_em_sensitivity_chart,
+    subfactor_comparison_bar_chart,
+)
 from data_loader import (
     annual_subfactor_comparison,
     build_short_label,
@@ -245,18 +250,28 @@ def select_filter(label: str, values: list, key: str, format_func=None):
     formatter = format_func or (lambda value: str(value))
     if st.session_state.get(key) not in options:
         st.session_state[key] = "Todos"
+    
+    current_value = st.session_state.get(key, "Todos")
+    try:
+        index = options.index(current_value)
+    except ValueError:
+        index = 0
+        
     return st.selectbox(
         label,
         options,
+        index=index,
         key=key,
         format_func=lambda value: value if value == "Todos" else formatter(value),
     )
+
 
 
 def reset_filters() -> None:
     for key in [
         "filter_schema",
         "filter_positions",
+        "filter_alpha",
         "filter_vol",
         "filter_leverage",
         "filter_mode",
@@ -271,10 +286,11 @@ def filter_catalog(catalog: pd.DataFrame) -> pd.DataFrame:
     mappings = {
         "filter_schema": "schema_label",
         "filter_positions": "n_positions",
+        "filter_alpha": "alpha",
         "filter_vol": "target_vol",
         "filter_leverage": "max_leverage",
         "filter_mode": "weights_mode_label",
-        "filter_window": "training_years",
+        "filter_window": "training_months",
     }
     for state_key, column in mappings.items():
         value = st.session_state.get(state_key)
@@ -297,10 +313,11 @@ def table_frame(filtered: pd.DataFrame, selected: set[str]) -> pd.DataFrame:
             "Esquema": filtered["schema_label"],
             "Pesos dinámicos": filtered["is_dynamic"].map({True: "Sí", False: "No"}),
             "Posiciones": filtered["n_positions"],
+            "Alpha": filtered["alpha"],
             "Vol. objetivo": filtered["target_vol"] * 100,
             "Apalancamiento": filtered["max_leverage"],
             "Ponderación": filtered["weights_mode_label"],
-            "Ventana": filtered["training_years"],
+            "Ventana": filtered["training_months"],
             "CAGR": filtered["cagr"] * 100,
             "Sharpe": filtered["sharpe_ratio"],
             "Max drawdown": filtered["max_drawdown"] * 100,
@@ -349,6 +366,13 @@ if catalog.empty:
     st.warning("Todavía no hay experimentos completos para mostrar.")
     st.stop()
 
+online_catalog = catalog[catalog["schema"] == "OnlineEM"]
+kpi_columns = st.columns(4)
+kpi_columns[0].metric("Experimentos completos", f"{len(catalog):,}")
+kpi_columns[1].metric("Online EM completos", f"{len(online_catalog):,}")
+kpi_columns[2].metric("Mejor CAGR", f"{catalog['cagr'].max():.2%}")
+kpi_columns[3].metric("Mejor Sharpe", f"{catalog['sharpe_ratio'].max():.2f}")
+
 if "selected_experiments" not in st.session_state:
     best_per_family = (
         catalog.sort_values("cagr", ascending=False)
@@ -360,7 +384,7 @@ if "selected_experiments" not in st.session_state:
         best_per_family["run_key"].tolist()
     )
 
-filter_columns = st.columns([1.25, .9, .78, .9, .9, 1.1, .8, .68])
+filter_columns = st.columns([1.18, .72, .62, .62, .72, .72, 1.0, .72, .55])
 with filter_columns[0]:
     select_filter("Esquema", sorted(catalog["schema_label"].unique()), "filter_schema")
 with filter_columns[1]:
@@ -368,16 +392,19 @@ with filter_columns[1]:
 with filter_columns[2]:
     select_filter("Posiciones", sorted(catalog["n_positions"].unique()), "filter_positions")
 with filter_columns[3]:
-    select_filter("Vol. objetivo", sorted(catalog["target_vol"].unique()), "filter_vol", lambda x: f"{x:.0%}")
+    alpha_values = sorted(catalog["alpha"].dropna().unique())
+    select_filter("Alpha", alpha_values, "filter_alpha", lambda x: f"{x:.2f}")
 with filter_columns[4]:
-    select_filter("Apalancamiento", sorted(catalog["max_leverage"].unique()), "filter_leverage", lambda x: f"{x:.1f}x")
+    select_filter("Vol. objetivo", sorted(catalog["target_vol"].unique()), "filter_vol", lambda x: f"{x:.0%}")
 with filter_columns[5]:
-    select_filter("Ponderación", sorted(catalog["weights_mode_label"].unique()), "filter_mode")
+    select_filter("Apalancamiento", sorted(catalog["max_leverage"].unique()), "filter_leverage", lambda x: f"{x:.1f}x")
 with filter_columns[6]:
-    select_filter("Ventana", sorted(catalog["training_years"].unique()), "filter_window", lambda x: f"{x} años")
+    select_filter("Ponderación", sorted(catalog["weights_mode_label"].unique()), "filter_mode")
 with filter_columns[7]:
+    select_filter("Ventana", sorted(catalog["training_months"].unique()), "filter_window", lambda x: f"{int(x)}m")
+with filter_columns[8]:
     st.markdown("<div style='height:1.74rem'></div>", unsafe_allow_html=True)
-    st.button("Limpiar", use_container_width=True, on_click=reset_filters)
+    st.button("Limpiar", width="stretch", on_click=reset_filters)
 
 filtered = filter_catalog(catalog)
 
@@ -387,6 +414,7 @@ filter_signature = tuple(
         "filter_schema",
         "filter_dynamic",
         "filter_positions",
+        "filter_alpha",
         "filter_vol",
         "filter_leverage",
         "filter_mode",
@@ -407,10 +435,11 @@ column_config = {
     "Esquema": st.column_config.TextColumn(width="medium"),
     "Pesos dinámicos": st.column_config.TextColumn(width="small"),
     "Posiciones": st.column_config.NumberColumn(format="%d"),
+    "Alpha": st.column_config.NumberColumn(format="%.2f"),
     "Vol. objetivo": st.column_config.NumberColumn(format="%.0f%%"),
     "Apalancamiento": st.column_config.NumberColumn(format="%.1fx"),
     "Ponderación": st.column_config.TextColumn(width="medium"),
-    "Ventana": st.column_config.NumberColumn(format="%d años"),
+    "Ventana": st.column_config.NumberColumn(format="%d meses"),
     "CAGR": st.column_config.NumberColumn(format="%.2f%%"),
     "Sharpe": st.column_config.NumberColumn(format="%.2f"),
     "Max drawdown": st.column_config.NumberColumn(format="%.2f%%"),
@@ -429,7 +458,7 @@ edited = st.data_editor(
     table,
     key=f"experiment_comparison_table_{current_catalog_version}_{editor_version}",
     hide_index=True,
-    use_container_width=True,
+    width="stretch",
     height=455,
     column_config=column_config,
     disabled=[column for column in table.columns if column != "Comparar"],
@@ -445,9 +474,27 @@ left_caption.caption(
     f"Mostrando {len(filtered)} de {len(catalog)} configuraciones · "
     "orden inicial: CAGR de mayor a menor"
 )
-if right_action.button("Actualizar", use_container_width=True):
+if right_action.button("Actualizar", width="stretch"):
     st.cache_data.clear()
     st.rerun()
+
+online_visible = filtered[filtered["schema"] == "OnlineEM"].dropna(subset=["alpha"])
+if not online_visible.empty:
+    sensitivity = (
+        online_visible.groupby(["alpha", "training_months"], as_index=False)
+        .agg(
+            median_sharpe=("sharpe_ratio", "median"),
+            best_cagr=("cagr", "max"),
+            experiments=("run_key", "count"),
+        )
+    )
+    st.markdown('<div class="section-rule"></div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-title"><h2>Sensibilidad Online EM</h2>'
+        '<span>Sharpe mediano de las combinaciones visibles</span></div>',
+        unsafe_allow_html=True,
+    )
+    st.altair_chart(online_em_sensitivity_chart(sensitivity), width="stretch")
 
 selected = [run_key for run_key in catalog["run_key"] if run_key in selected_after]
 color_map = {run_key: PALETTE[index % len(PALETTE)] for index, run_key in enumerate(selected)}
@@ -495,7 +542,7 @@ st.markdown(
 )
 nav_long = cached_nav(str(DEFAULT_EXPERIMENTS_ROOT), run_keys_tuple)
 nav_long["experiment"] = nav_long["experiment"].map(label_map)
-st.altair_chart(capital_growth_chart(nav_long, display_domain, colors), use_container_width=True)
+st.altair_chart(capital_growth_chart(nav_long, display_domain, colors), width="stretch")
 
 weights = cached_weights(str(DEFAULT_EXPERIMENTS_ROOT), run_keys_tuple)
 if not weights.empty:
@@ -572,7 +619,7 @@ else:
             subfactor_order,
             comparison_domain,
         ),
-        use_container_width=True,
+        width="stretch",
     )
 
     st.markdown("### Matriz histórica de los subfactores comparados")

@@ -17,6 +17,7 @@ SCHEMA_LABELS = {
     "KalmanEM_SB": "Kalman EM · Style buckets",
     "KalmanEM_base": "Kalman EM · Base",
     "SB_Fijo": "Style buckets fijo",
+    "OnlineEM": "Online EM · one-step smoother",
 }
 
 WEIGHTS_MODE_LABELS = {
@@ -118,6 +119,7 @@ def _fallback_config_values(config_path: Path) -> dict:
     risk = model.get("risk_overlay", {}).get("params", {})
     signal = model.get("signal_generator", {}).get("params", {})
     testing = config.get("testing", {})
+    experiment = config.get("experiment", {})
     weights_file = str(signal.get("weights_file", "")).lower()
     return {
         "n_positions": constructor.get("n_positions"),
@@ -127,7 +129,13 @@ def _fallback_config_values(config_path: Path) -> dict:
         "is_dynamic": "fixed" not in weights_file,
         "start_date": testing.get("start_date"),
         "end_date": testing.get("end_date"),
+        "alpha": experiment.get("alpha"),
+        "training_months": experiment.get("training_months"),
     }
+
+
+def _coalesce(value, fallback):
+    return fallback if value is None or (isinstance(value, float) and math.isnan(value)) else value
 
 
 def load_experiment_catalog(experiments_root: str | Path) -> pd.DataFrame:
@@ -159,6 +167,11 @@ def load_experiment_catalog(experiments_root: str | Path) -> pd.DataFrame:
             max_leverage = summary_row.get("max_leverage")
             weights_mode = summary_row.get("weights_mode")
             training_years = summary_row.get("training_years")
+            training_months = _coalesce(
+                summary_row.get("training_months"),
+                config_values.get("training_months"),
+            )
+            alpha = _coalesce(summary_row.get("alpha"), config_values.get("alpha"))
             is_dynamic = summary_row.get("is_dynamic", config_values["is_dynamic"])
             status = summary_row.get("status", "Completed")
         else:
@@ -168,6 +181,8 @@ def load_experiment_catalog(experiments_root: str | Path) -> pd.DataFrame:
             max_leverage = config_values["max_leverage"]
             weights_mode = config_values["weights_mode"]
             training_years = 2 if run_key.endswith("_2y") else 4
+            training_months = config_values.get("training_months") or int(training_years * 12)
+            alpha = config_values.get("alpha")
             is_dynamic = config_values["is_dynamic"]
             status = "Completed"
 
@@ -189,7 +204,9 @@ def load_experiment_catalog(experiments_root: str | Path) -> pd.DataFrame:
                 "max_leverage": float(max_leverage),
                 "weights_mode": str(weights_mode),
                 "weights_mode_label": WEIGHTS_MODE_LABELS.get(str(weights_mode), str(weights_mode)),
-                "training_years": int(training_years),
+                "training_years": float(training_years),
+                "training_months": int(training_months or round(float(training_years) * 12)),
+                "alpha": float(alpha) if alpha is not None and pd.notna(alpha) else math.nan,
                 "is_dynamic": bool(is_dynamic),
                 "status": str(status),
                 "cagr": float(analytics["cagr"]),
@@ -377,8 +394,9 @@ def annual_subfactor_comparison(weights: pd.DataFrame) -> pd.DataFrame:
 
 def build_short_label(row: pd.Series) -> str:
     dynamics = "Dinámicos" if bool(row["is_dynamic"]) else "Fijos"
+    alpha = f"α {row['alpha']:.2f} · " if pd.notna(row.get("alpha")) else ""
     return (
         f"{row['schema_label']} · N{int(row['n_positions'])} · "
         f"{row['target_vol']:.0%} vol · {row['max_leverage']:.1f}x · "
-        f"{row['weights_mode_label']} · {int(row['training_years'])}a · {dynamics}"
+        f"{row['weights_mode_label']} · {alpha}{int(row['training_months'])}m · {dynamics}"
     )
