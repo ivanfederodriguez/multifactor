@@ -380,8 +380,27 @@ with filter_columns[7]:
     st.button("Limpiar", use_container_width=True, on_click=reset_filters)
 
 filtered = filter_catalog(catalog)
+
+filter_signature = tuple(
+    st.session_state.get(key, "Todos")
+    for key in [
+        "filter_schema",
+        "filter_dynamic",
+        "filter_positions",
+        "filter_vol",
+        "filter_leverage",
+        "filter_mode",
+        "filter_window",
+    ]
+)
+
+# Store the table's initial selection when the filters change
+if "last_filter_signature" not in st.session_state or st.session_state.last_filter_signature != filter_signature:
+    st.session_state.last_filter_signature = filter_signature
+    st.session_state.table_initial_selection = set(st.session_state.selected_experiments)
+
 selected_before = set(st.session_state.selected_experiments)
-table = table_frame(filtered, selected_before)
+table = table_frame(filtered, st.session_state.table_initial_selection)
 
 column_config = {
     "_run_key": None,
@@ -405,18 +424,6 @@ column_config = {
     "Comparar": st.column_config.CheckboxColumn(width="small"),
 }
 
-filter_signature = tuple(
-    st.session_state.get(key, "Todos")
-    for key in [
-        "filter_schema",
-        "filter_dynamic",
-        "filter_positions",
-        "filter_vol",
-        "filter_leverage",
-        "filter_mode",
-        "filter_window",
-    ]
-)
 editor_version = hashlib.sha1(repr(filter_signature).encode("utf-8")).hexdigest()[:10]
 edited = st.data_editor(
     table,
