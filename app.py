@@ -6,14 +6,13 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from charts import capital_growth_chart, subfactor_timeline_chart
+from charts import FACTOR_COLORS, capital_growth_chart, subfactor_comparison_bar_chart
 from data_loader import (
-    annual_subfactor_ranking,
+    annual_subfactor_comparison,
     build_short_label,
     load_experiment_catalog,
     load_nav_series,
     load_weight_series,
-    top_subfactor_timeline,
 )
 
 
@@ -39,6 +38,16 @@ PALETTE = [
     "#65A30D",
     "#0891B2",
 ]
+
+FACTOR_LIGHT_COLORS = {
+    "Value": "#DBEAFE",
+    "Quality": "#D1FAE5",
+    "Growth": "#FFEDD5",
+    "Momentum": "#EDE9FE",
+    "Revisions": "#FFE4E6",
+    "Profitability momentum": "#FEF3C7",
+    "Low volatility": "#E2E8F0",
+}
 
 
 st.set_page_config(
@@ -85,6 +94,41 @@ st.markdown(
         color: var(--ink);
         font-weight: 650;
     }
+    .matrix-scroll {
+        max-height: 720px;
+        overflow: auto;
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+    }
+    .matrix-scroll table {
+        border-collapse: separate;
+        border-spacing: 0;
+        min-width: 1320px;
+        width: 100%;
+        font-size: .72rem;
+    }
+    .matrix-scroll thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #f5f7fa;
+        color: var(--ink);
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    .matrix-scroll th, .matrix-scroll td {
+        border-right: 1px solid #e3e8ef;
+        border-bottom: 1px solid #e3e8ef;
+        padding: .42rem .5rem;
+        text-align: right;
+        white-space: nowrap;
+    }
+    .matrix-scroll th:nth-child(2),
+    .matrix-scroll th:nth-child(3),
+    .matrix-scroll th:nth-child(4),
+    .matrix-scroll td:nth-child(2),
+    .matrix-scroll td:nth-child(3),
+    .matrix-scroll td:nth-child(4) { text-align: left; }
     div[data-testid="stSelectbox"] > div > div,
     div[data-testid="stTextInput"] > div > div > input,
     div[data-testid="stMultiSelect"] > div > div {
@@ -427,6 +471,15 @@ label_map = {
     for run_key in selected
 }
 display_domain = [label_map[run_key] for run_key in selected]
+comparison_code_map = {
+    run_key: f"C{index + 1}"
+    for index, run_key in enumerate(selected)
+}
+comparison_label_map = {
+    run_key: f"{comparison_code_map[run_key]} · {label_map[run_key]}"
+    for run_key in selected
+}
+comparison_domain = [comparison_label_map[run_key] for run_key in selected]
 
 st.markdown('<div class="section-rule"></div>', unsafe_allow_html=True)
 st.markdown(
@@ -439,68 +492,151 @@ st.altair_chart(capital_growth_chart(nav_long, display_domain, colors), use_cont
 
 weights = cached_weights(str(DEFAULT_EXPERIMENTS_ROOT), run_keys_tuple)
 if not weights.empty:
-    weights["experiment"] = weights["experiment"].map(label_map)
-subfactor_timeline = top_subfactor_timeline(weights, top_n=10)
-subfactor_ranking = annual_subfactor_ranking(weights, top_n=10)
+    weights["experiment"] = weights["experiment"].map(comparison_label_map)
+annual_comparison = annual_subfactor_comparison(weights)
 
 st.markdown('<div class="section-rule"></div>', unsafe_allow_html=True)
 st.markdown(
-    '<div class="section-title"><h2>Top 10 subfactores en el tiempo</h2>'
-    f'<span>Promedio anual de {len(selected)} configuraciones seleccionadas</span></div>',
+    '<div class="section-title"><h2>Comparación anual de subfactores</h2>'
+    f'<span>{len(selected)} configuraciones · valores sin promediar entre configuraciones</span></div>',
     unsafe_allow_html=True,
 )
-st.caption(
-    "El ranking usa el peso medio de todo el período. Cada punto es el promedio anual; "
-    "cada línea es un subfactor y "
-    "el color identifica el factor al que pertenece. Pasá el cursor para resaltar una serie."
-)
-if subfactor_timeline.empty:
+if annual_comparison.empty:
     st.info("Las configuraciones seleccionadas no tienen series de pesos disponibles.")
 else:
-    st.altair_chart(
-        subfactor_timeline_chart(subfactor_timeline),
-        use_container_width=True,
-    )
-
-if not subfactor_ranking.empty:
-    ranking_title, ranking_year = st.columns([5, 1])
-    ranking_title.markdown("### Ranking anual de subfactores")
-    available_years = sorted(subfactor_ranking["year"].astype(int).unique(), reverse=True)
-    with ranking_year:
+    available_years = sorted(annual_comparison["year"].unique(), reverse=True)
+    available_factors = [
+        factor
+        for factor in FACTOR_COLORS
+        if factor in set(annual_comparison["Factor"].dropna())
+    ]
+    year_control, factor_control, _ = st.columns([1, 1.55, 3.45])
+    with year_control:
         selected_year = st.selectbox(
             "Año",
             available_years,
-            key="subfactor_ranking_year",
+            key="subfactor_bar_year",
         )
+    with factor_control:
+        selected_factor = st.selectbox(
+            "Factor",
+            ["Todos", *available_factors],
+            key="subfactor_factor_filter",
+        )
+
+    selected_year_data = annual_comparison[
+        annual_comparison["year"] == selected_year
+    ].copy()
+    if selected_factor != "Todos":
+        selected_year_data = selected_year_data[
+            selected_year_data["Factor"] == selected_factor
+        ]
+
+    top_scores = (
+        selected_year_data.groupby(
+            ["subfactor_key", "Subfactor"],
+            as_index=False,
+        )["weight"]
+        .max()
+        .sort_values(
+            ["weight", "Subfactor"],
+            ascending=[False, True],
+        )
+        .head(10)
+    )
+    top_keys = top_scores["subfactor_key"].tolist()
+    subfactor_order = top_scores["Subfactor"].tolist()
+    rank_map = {
+        subfactor: rank
+        for rank, subfactor in enumerate(subfactor_order, start=1)
+    }
+    chart_data = selected_year_data[
+        selected_year_data["subfactor_key"].isin(top_keys)
+    ].copy()
+    chart_data["rank"] = chart_data["Subfactor"].map(rank_map)
+
     st.caption(
-        "Los diez mayores pesos medios del año elegido. Este ranking se calcula por año "
-        "y puede incluir subfactores distintos a las diez series globales del gráfico."
+        "El top 10 se define por el mayor peso individual observado en el año y factor elegidos. "
+        "Cada panel conserva los valores propios de una configuración; no se promedian entre sí."
     )
-    annual_table = (
-        subfactor_ranking[subfactor_ranking["year"] == selected_year]
-        .loc[:, ["rank", "Subfactor", "Factor", "weight"]]
-        .rename(
-            columns={
-                "rank": "Ranking",
-                "weight": "Peso medio anual",
-            }
-        )
-    )
-    annual_table["Peso medio anual"] = annual_table["Peso medio anual"] * 100
-    st.dataframe(
-        annual_table,
-        hide_index=True,
+    st.altair_chart(
+        subfactor_comparison_bar_chart(
+            chart_data,
+            subfactor_order,
+            comparison_domain,
+        ),
         use_container_width=True,
-        height=390,
-        column_config={
-            "Ranking": st.column_config.NumberColumn(width="small", format="%d"),
-            "Subfactor": st.column_config.TextColumn(width="large"),
-            "Factor": st.column_config.TextColumn(width="medium"),
-            "Peso medio anual": st.column_config.NumberColumn(format="%.2f%%"),
-        },
+    )
+
+    st.markdown("### Matriz histórica de los subfactores comparados")
+    st.caption(
+        "Una fila por configuración y subfactor; una columna por año. "
+        "El fondo de cada valor identifica el factor del subfactor. "
+        "C1, C2, etc. corresponden a los paneles del gráfico."
+    )
+    history = annual_comparison[
+        annual_comparison["subfactor_key"].isin(top_keys)
+    ].copy()
+    history["Ranking"] = history["Subfactor"].map(rank_map)
+    year_columns = sorted(annual_comparison["year"].unique())
+    annual_matrix = history.pivot(
+        index=["Ranking", "experiment", "Subfactor", "Factor"],
+        columns="year",
+        values="weight",
+    ).reset_index()
+    annual_matrix = annual_matrix.rename(columns={"experiment": "Configuración"})
+    year_labels = [str(year) for year in year_columns]
+    annual_matrix = annual_matrix.rename(
+        columns={year: str(year) for year in year_columns}
+    )
+    experiment_order = {
+        experiment: order
+        for order, experiment in enumerate(comparison_domain)
+    }
+    annual_matrix["_experiment_order"] = annual_matrix["Configuración"].map(
+        experiment_order
+    )
+    annual_matrix = annual_matrix.sort_values(
+        ["Ranking", "_experiment_order"]
+    ).drop(columns="_experiment_order").reset_index(drop=True)
+    comparison_code_by_label = {
+        comparison_label_map[run_key]: comparison_code_map[run_key]
+        for run_key in selected
+    }
+    annual_matrix["Configuración"] = annual_matrix["Configuración"].map(
+        comparison_code_by_label
+    )
+    annual_matrix = annual_matrix[
+        ["Ranking", "Configuración", "Subfactor", "Factor", *year_labels]
+    ]
+
+    matrix_styles = pd.DataFrame(
+        "",
+        index=annual_matrix.index,
+        columns=annual_matrix.columns,
+    )
+    for row_index, factor in annual_matrix["Factor"].items():
+        light_color = FACTOR_LIGHT_COLORS.get(factor, "#F1F5F9")
+        dark_color = FACTOR_COLORS.get(factor, "#475569")
+        matrix_styles.loc[row_index, "Factor"] = (
+            f"color: {dark_color}; font-weight: 700;"
+        )
+        for year in year_labels:
+            matrix_styles.loc[row_index, year] = (
+                f"background-color: {light_color}; color: #102A43; font-weight: 600;"
+            )
+
+    styled_matrix = (
+        annual_matrix.style
+        .format({year: "{:.2%}" for year in year_labels}, na_rep="—")
+        .apply(lambda _: matrix_styles, axis=None)
+    )
+    st.markdown(
+        f'<div class="matrix-scroll">{styled_matrix.hide(axis="index").to_html()}</div>',
+        unsafe_allow_html=True,
     )
 
 st.caption(
     "Fuente: analytics.json, portfolio_nav.csv, trades.csv y dqi_active_weights_evolution.csv "
-    "de cada configuración. Las líneas y la tabla usan promedios anuales de la selección activa."
+    "de cada configuración. Los promedios anuales se calculan por configuración, sin combinarlas."
 )

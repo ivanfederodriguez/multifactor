@@ -296,7 +296,7 @@ def subfactor_comparison_bar_chart(
             title=None,
             sort=experiment_order,
             header=alt.Header(
-                labelFontWeight=650,
+                labelFontWeight=600,
                 labelFontSize=11,
                 labelLimit=560,
                 labelPadding=10,
