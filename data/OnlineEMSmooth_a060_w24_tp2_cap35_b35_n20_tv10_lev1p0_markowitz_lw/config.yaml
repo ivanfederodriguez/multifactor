@@ -1,0 +1,65 @@
+strategy:
+  training_window: 504
+  training_frequency: QUARTERLY
+  rebalance_frequency: MONTHLY
+  model_config:
+    name: dqi_multifactor
+    min_history: 252
+    signal_generator:
+      name: dqi_signal
+      params:
+        z_grouping: sub_industry
+        regime_weights: true
+        weights_mode: dynamic
+        weights_file: Data/dqi_weights_online_em_smooth_a060_w24_tp2_cap35_b35.csv
+    portfolio_constructor:
+      name: dqi_quintile
+      params:
+        n_positions: 20
+        long_only: true
+        weights_mode: markowitz_lw
+    risk_overlay:
+      name: dqi_vol_target
+      params:
+        target_vol: 0.1
+        vol_lookback: 63
+        max_leverage: 1.0
+environment:
+  starting_cash: 1000000
+  base_currency: USD
+  max_leverage: 1.0
+  add_noise: false
+  interest_settlement_frequency: MONTHLY
+  min_weight: 0.0001
+  margin_rate: 0.5
+  financing_rates:
+    LONG: 0.0
+    SHORT: 0.01
+  collateral_rates:
+    LONG: 0.0
+    SHORT: 1.0
+  fee_per_share: 0.005
+  min_fee: 1.0
+  max_fee_pct: 0.01
+  add_slippage: true
+  cash_rates:
+    USD:
+      debit: 0.04
+      credit: 0.05
+testing:
+  random_seed: 42
+  benchmark: SPY
+  start_date: '2013-01-31'
+  end_date: '2025-12-31'
+experiment:
+  schema: OnlineEMSmooth
+  alpha: 0.6
+  training_months: 24
+  training_years: 2.0
+  target_vol: 0.1
+  max_leverage: 1.0
+  portfolio_weighting: markowitz_lw
+  n_positions: 20
+  turnover_penalty: 2.0
+  max_weight: 0.35
+  weight_blend: 0.35

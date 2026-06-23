@@ -70,41 +70,6 @@ def capital_growth_chart(data: pd.DataFrame, domain: list[str], colors: list[str
     return _configure(chart)
 
 
-def online_em_sensitivity_chart(data: pd.DataFrame) -> alt.Chart:
-    """Median Sharpe heatmap across the visible Online EM experiment cells."""
-    chart_data = data.copy()
-    chart_data["alpha_label"] = chart_data["alpha"].map(lambda value: f"{value:.2f}")
-    chart_data["window_label"] = chart_data["training_months"].map(lambda value: f"{int(value)} meses")
-    chart_data["sharpe_label"] = chart_data["median_sharpe"].map(lambda value: f"{value:.2f}")
-    base = alt.Chart(chart_data).encode(
-        x=alt.X("alpha_label:O", title="Alpha", sort="ascending"),
-        y=alt.Y("window_label:O", title="Warm-up / entrenamiento", sort="ascending"),
-        tooltip=[
-            alt.Tooltip("alpha:Q", title="Alpha", format=".2f"),
-            alt.Tooltip("training_months:Q", title="Ventana", format=".0f"),
-            alt.Tooltip("median_sharpe:Q", title="Sharpe mediano", format=".3f"),
-            alt.Tooltip("best_cagr:Q", title="Mejor CAGR", format=".2%"),
-            alt.Tooltip("experiments:Q", title="Experimentos", format=".0f"),
-        ],
-    )
-    heatmap = base.mark_rect(cornerRadius=3).encode(
-        color=alt.Color(
-            "median_sharpe:Q",
-            title="Sharpe mediano",
-            scale=alt.Scale(scheme="bluegreen"),
-        )
-    )
-    labels = base.mark_text(fontWeight=700, fontSize=13).encode(
-        text="sharpe_label:N",
-        color=alt.condition(
-            "datum.median_sharpe > 0.9",
-            alt.value("white"),
-            alt.value(TITLE_COLOR),
-        ),
-    )
-    return _configure((heatmap + labels).properties(height=150))
-
-
 def subfactor_timeline_chart(data: pd.DataFrame) -> alt.Chart:
     active_factors = [factor for factor in FACTOR_COLORS if factor in set(data["Factor"])]
     factor_colors = [FACTOR_COLORS[factor] for factor in active_factors]
@@ -339,6 +304,98 @@ def subfactor_comparison_bar_chart(
         ),
         columns=2,
     ).resolve_scale(x="shared")
+    return _configure(faceted)
+
+
+def annual_top_subfactor_stack_chart(
+    data: pd.DataFrame,
+    experiment_order: list[str],
+) -> alt.Chart:
+    """Show annual top-five subfactor coverage by selected experiment."""
+    chart_data = data.copy()
+    chart_data["year_label"] = chart_data["year"].astype(str)
+    years = [str(year) for year in sorted(chart_data["year"].unique())]
+    active_factors = [factor for factor in FACTOR_COLORS if factor in set(chart_data["Factor"])]
+    factor_colors = [FACTOR_COLORS[factor] for factor in active_factors]
+    y_domain_end = max(float(chart_data["top_weight"].max()) * 1.08, 0.05)
+
+    x = alt.X(
+        "year_label:O",
+        title=None,
+        sort=years,
+        axis=alt.Axis(labelAngle=0, grid=False),
+    )
+    y_scale = alt.Scale(domain=[0, y_domain_end], nice=True)
+    color = alt.Color(
+        "Factor:N",
+        title="Factor",
+        scale=alt.Scale(domain=active_factors, range=factor_colors),
+        legend=alt.Legend(
+            orient="top",
+            direction="horizontal",
+            columns=4,
+            symbolStrokeWidth=4,
+            labelLimit=220,
+        ),
+    )
+    tooltip = [
+        alt.Tooltip("experiment:N", title="Configuración"),
+        alt.Tooltip("year:O", title="Año"),
+        alt.Tooltip("rank:O", title="Ranking"),
+        alt.Tooltip("Subfactor:N", title="Subfactor"),
+        alt.Tooltip("Factor:N", title="Factor"),
+        alt.Tooltip("weight:Q", title="Peso medio anual", format=".2%"),
+        alt.Tooltip("top_weight:Q", title="Cobertura top 5", format=".2%"),
+    ]
+
+    base = alt.Chart(chart_data).encode(x=x, tooltip=tooltip)
+    bars = base.mark_bar(
+        stroke="white",
+        strokeWidth=0.8,
+        cornerRadiusTopLeft=1,
+        cornerRadiusTopRight=1,
+    ).encode(
+        y=alt.Y(
+            "cum_start:Q",
+            title="Peso acumulado top 5",
+            scale=y_scale,
+            axis=alt.Axis(format=".0%"),
+        ),
+        y2=alt.Y2("cum_end:Q"),
+        color=color,
+        order=alt.Order("rank:Q", sort="ascending"),
+    )
+    labels = base.mark_text(
+        align="center",
+        baseline="middle",
+        color="white",
+        stroke=TITLE_COLOR,
+        strokeWidth=0.12,
+        fontSize=8,
+        fontWeight=700,
+        limit=92,
+        clip=True,
+    ).encode(
+        y=alt.Y("label_y:Q", scale=y_scale),
+        text=alt.Text("segment_label:N"),
+        opacity=alt.condition("datum.weight >= 0.015", alt.value(1), alt.value(0.55)),
+    )
+    panel = (bars + labels).properties(width=1120, height=185)
+    faceted = panel.facet(
+        facet=alt.Facet(
+            "experiment:N",
+            title=None,
+            sort=experiment_order,
+            header=alt.Header(
+                labelFontWeight=700,
+                labelFontSize=11,
+                labelLimit=920,
+                labelPadding=8,
+            ),
+        ),
+        columns=1,
+        spacing=12,
+    ).resolve_scale(y="shared")
     return _configure(faceted)
 
 

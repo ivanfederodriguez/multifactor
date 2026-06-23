@@ -8,13 +8,17 @@ import streamlit as st
 
 from charts import (
     FACTOR_COLORS,
+    annual_top_subfactor_stack_chart,
     capital_growth_chart,
-    online_em_sensitivity_chart,
+    factor_chart,
     subfactor_comparison_bar_chart,
 )
 from data_loader import (
     annual_subfactor_comparison,
+    annual_top_subfactor_segments,
     build_short_label,
+    factor_weights_long,
+    format_smoothing_label,
     load_experiment_catalog,
     load_nav_series,
     load_weight_series,
@@ -279,6 +283,10 @@ def reset_filters() -> None:
         "filter_dynamic",
     ]:
         st.session_state[key] = "Todos"
+    st.session_state.selected_experiments = set()
+    st.session_state.table_initial_selection = set()
+    st.session_state.last_filter_signature = None
+    st.session_state.table_reset_version = st.session_state.get("table_reset_version", 0) + 1
 
 
 def filter_catalog(catalog: pd.DataFrame) -> pd.DataFrame:
@@ -300,7 +308,7 @@ def filter_catalog(catalog: pd.DataFrame) -> pd.DataFrame:
     if dynamic_value not in (None, "Todos"):
         filtered = filtered[filtered["is_dynamic"] == (dynamic_value == "Sí")]
     return filtered.sort_values(
-        ["cagr", "sharpe_ratio", "run_key"],
+        ["sharpe_ratio", "cagr", "run_key"],
         ascending=[False, False, True],
     )
 
@@ -318,6 +326,7 @@ def table_frame(filtered: pd.DataFrame, selected: set[str]) -> pd.DataFrame:
             "Apalancamiento": filtered["max_leverage"],
             "Ponderación": filtered["weights_mode_label"],
             "Ventana": filtered["training_months"],
+            "Suavizado": filtered.apply(format_smoothing_label, axis=1),
             "CAGR": filtered["cagr"] * 100,
             "Sharpe": filtered["sharpe_ratio"],
             "Max drawdown": filtered["max_drawdown"] * 100,
@@ -366,26 +375,25 @@ if catalog.empty:
     st.warning("Todavía no hay experimentos completos para mostrar.")
     st.stop()
 
-online_catalog = catalog[catalog["schema"] == "OnlineEM"]
-summary_path = DEFAULT_EXPERIMENTS_ROOT / "experiments_summary.csv"
-if summary_path.exists():
-    summary_frame = pd.read_csv(summary_path, usecols=lambda column: column in {"schema", "status"})
-    online_declared = summary_frame[summary_frame["schema"] == "OnlineEM"]
-    online_total = len(online_declared)
-else:
-    online_total = len(online_catalog)
 kpi_columns = st.columns(4)
 kpi_columns[0].metric("Experimentos completos", f"{len(catalog):,}")
-kpi_columns[1].metric("Online EM completos", f"{len(online_catalog):,} / {online_total:,}")
+kpi_columns[1].metric("Trades promedio", f"{catalog['total_trades'].mean():,.0f}")
 kpi_columns[2].metric("Mejor CAGR", f"{catalog['cagr'].max():.2%}")
 kpi_columns[3].metric("Mejor Sharpe", f"{catalog['sharpe_ratio'].max():.2f}")
 
 if "selected_experiments" not in st.session_state:
     best_per_family = (
-        catalog.sort_values("cagr", ascending=False)
+        catalog.sort_values(
+            ["sharpe_ratio", "cagr"],
+            ascending=[False, False],
+        )
         .groupby("schema", sort=False, as_index=False)
         .head(1)
-        .nlargest(3, "cagr")
+        .sort_values(
+            ["sharpe_ratio", "cagr"],
+            ascending=[False, False],
+        )
+        .head(3)
     )
     st.session_state.selected_experiments = set(
         best_per_family["run_key"].tolist()
@@ -411,7 +419,7 @@ with filter_columns[7]:
     select_filter("Ventana", sorted(catalog["training_months"].unique()), "filter_window", lambda x: f"{int(x)}m")
 with filter_columns[8]:
     st.markdown("<div style='height:1.74rem'></div>", unsafe_allow_html=True)
-    st.button("Limpiar", width="stretch", on_click=reset_filters)
+    st.button("Limpiar", use_container_width=True, on_click=reset_filters)
 
 filtered = filter_catalog(catalog)
 
@@ -460,12 +468,15 @@ column_config = {
     "Comparar": st.column_config.CheckboxColumn(width="small"),
 }
 
-editor_version = hashlib.sha1(repr(filter_signature).encode("utf-8")).hexdigest()[:10]
+table_reset_version = st.session_state.get("table_reset_version", 0)
+editor_version = hashlib.sha1(
+    repr((filter_signature, table_reset_version)).encode("utf-8")
+).hexdigest()[:10]
 edited = st.data_editor(
     table,
     key=f"experiment_comparison_table_{current_catalog_version}_{editor_version}",
     hide_index=True,
-    width="stretch",
+    use_container_width=True,
     height=455,
     column_config=column_config,
     disabled=[column for column in table.columns if column != "Comparar"],
@@ -479,32 +490,57 @@ st.session_state.selected_experiments = selected_after
 left_caption, right_action = st.columns([5, 1])
 left_caption.caption(
     f"Mostrando {len(filtered)} de {len(catalog)} configuraciones · "
-    "orden inicial: CAGR de mayor a menor"
+    "orden inicial: Sharpe de mayor a menor"
 )
-if right_action.button("Actualizar", width="stretch"):
+if right_action.button("Actualizar", use_container_width=True):
     st.cache_data.clear()
     st.rerun()
 
-online_visible = filtered[filtered["schema"] == "OnlineEM"].dropna(subset=["alpha"])
-if not online_visible.empty:
-    sensitivity = (
-        online_visible.groupby(["alpha", "training_months"], as_index=False)
-        .agg(
-            median_sharpe=("sharpe_ratio", "median"),
-            best_cagr=("cagr", "max"),
-            experiments=("run_key", "count"),
-        )
-    )
-    st.markdown('<div class="section-rule"></div>', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="section-title"><h2>Sensibilidad Online EM</h2>'
-        '<span>Sharpe mediano de las combinaciones visibles</span></div>',
-        unsafe_allow_html=True,
-    )
-    st.altair_chart(online_em_sensitivity_chart(sensitivity), width="stretch")
-
 selected = [run_key for run_key in catalog["run_key"] if run_key in selected_after]
 color_map = {run_key: PALETTE[index % len(PALETTE)] for index, run_key in enumerate(selected)}
+run_keys_tuple = tuple(selected)
+colors = [color_map[run_key] for run_key in selected]
+catalog_by_key = catalog.set_index("run_key")
+label_map = {
+    run_key: build_short_label(catalog_by_key.loc[run_key])
+    for run_key in selected
+}
+display_domain = [label_map[run_key] for run_key in selected]
+comparison_code_map = {
+    run_key: f"C{index + 1}"
+    for index, run_key in enumerate(selected)
+}
+comparison_label_map = {
+    run_key: f"{comparison_code_map[run_key]} · {label_map[run_key]}"
+    for run_key in selected
+}
+comparison_domain = [comparison_label_map[run_key] for run_key in selected]
+
+weights = cached_weights(str(DEFAULT_EXPERIMENTS_ROOT), run_keys_tuple) if selected else pd.DataFrame()
+
+st.markdown('<div class="section-rule"></div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="section-title"><h2>Evolución de pesos por factor</h2>'
+    '<span>Una línea por configuración seleccionada dentro de cada factor</span></div>',
+    unsafe_allow_html=True,
+)
+if not selected:
+    st.markdown(
+        '<div class="empty-state">Marcá <strong>Comparar</strong> en una o más filas para activar el gráfico de pesos.</div>',
+        unsafe_allow_html=True,
+    )
+else:
+    factor_weights = weights.copy()
+    if not factor_weights.empty:
+        factor_weights["experiment"] = factor_weights["experiment"].map(label_map)
+    factor_long = factor_weights_long(factor_weights)
+    if factor_long.empty:
+        st.info("Las configuraciones seleccionadas no tienen series de pesos por factor disponibles.")
+    else:
+        st.altair_chart(
+            factor_chart(factor_long, display_domain, colors, None),
+            use_container_width=True,
+        )
 
 st.markdown('<div class="section-rule"></div>', unsafe_allow_html=True)
 st.markdown(
@@ -524,24 +560,6 @@ render_selected_rail(catalog, selected, color_map)
 if len(selected) > len(PALETTE):
     st.warning("Hay más de 12 configuraciones seleccionadas; algunos colores se repetirán. Para leer mejor los gráficos, conviene comparar entre 2 y 8.")
 
-run_keys_tuple = tuple(selected)
-colors = [color_map[run_key] for run_key in selected]
-catalog_by_key = catalog.set_index("run_key")
-label_map = {
-    run_key: build_short_label(catalog_by_key.loc[run_key])
-    for run_key in selected
-}
-display_domain = [label_map[run_key] for run_key in selected]
-comparison_code_map = {
-    run_key: f"C{index + 1}"
-    for index, run_key in enumerate(selected)
-}
-comparison_label_map = {
-    run_key: f"{comparison_code_map[run_key]} · {label_map[run_key]}"
-    for run_key in selected
-}
-comparison_domain = [comparison_label_map[run_key] for run_key in selected]
-
 st.markdown('<div class="section-rule"></div>', unsafe_allow_html=True)
 st.markdown(
     '<div class="section-title"><h2>Crecimiento del capital</h2><span>Capital normalizado · Base 100</span></div>',
@@ -549,12 +567,27 @@ st.markdown(
 )
 nav_long = cached_nav(str(DEFAULT_EXPERIMENTS_ROOT), run_keys_tuple)
 nav_long["experiment"] = nav_long["experiment"].map(label_map)
-st.altair_chart(capital_growth_chart(nav_long, display_domain, colors), width="stretch")
+st.altair_chart(capital_growth_chart(nav_long, display_domain, colors), use_container_width=True)
 
-weights = cached_weights(str(DEFAULT_EXPERIMENTS_ROOT), run_keys_tuple)
-if not weights.empty:
-    weights["experiment"] = weights["experiment"].map(comparison_label_map)
-annual_comparison = annual_subfactor_comparison(weights)
+comparison_weights = weights.copy()
+if not comparison_weights.empty:
+    comparison_weights["experiment"] = comparison_weights["experiment"].map(comparison_label_map)
+annual_comparison = annual_subfactor_comparison(comparison_weights)
+annual_top_segments = annual_top_subfactor_segments(comparison_weights, top_n=5)
+
+st.markdown('<div class="section-rule"></div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="section-title"><h2>Evolución anual del top 5 de subfactores</h2>'
+    '<span>Barras apiladas por año y configuración · color por factor</span></div>',
+    unsafe_allow_html=True,
+)
+if annual_top_segments.empty:
+    st.info("Las configuraciones seleccionadas no tienen suficientes pesos de subfactores para este gráfico.")
+else:
+    st.altair_chart(
+        annual_top_subfactor_stack_chart(annual_top_segments, comparison_domain),
+        use_container_width=True,
+    )
 
 st.markdown('<div class="section-rule"></div>', unsafe_allow_html=True)
 st.markdown(
@@ -626,7 +659,7 @@ else:
             subfactor_order,
             comparison_domain,
         ),
-        width="stretch",
+        use_container_width=True,
     )
 
     st.markdown("### Matriz histórica de los subfactores comparados")

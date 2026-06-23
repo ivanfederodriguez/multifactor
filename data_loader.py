@@ -18,6 +18,7 @@ SCHEMA_LABELS = {
     "KalmanEM_base": "Kalman EM · Base",
     "SB_Fijo": "Style buckets fijo",
     "OnlineEM": "Online EM · one-step smoother",
+    "OnlineEMSmooth": "Online EM suave",
 }
 
 WEIGHTS_MODE_LABELS = {
@@ -131,6 +132,9 @@ def _fallback_config_values(config_path: Path) -> dict:
         "end_date": testing.get("end_date"),
         "alpha": experiment.get("alpha"),
         "training_months": experiment.get("training_months"),
+        "turnover_penalty": experiment.get("turnover_penalty"),
+        "max_weight": experiment.get("max_weight"),
+        "weight_blend": experiment.get("weight_blend"),
     }
 
 
@@ -172,6 +176,12 @@ def load_experiment_catalog(experiments_root: str | Path) -> pd.DataFrame:
                 config_values.get("training_months"),
             )
             alpha = _coalesce(summary_row.get("alpha"), config_values.get("alpha"))
+            turnover_penalty = _coalesce(
+                summary_row.get("turnover_penalty"),
+                config_values.get("turnover_penalty"),
+            )
+            max_weight = _coalesce(summary_row.get("max_weight"), config_values.get("max_weight"))
+            weight_blend = _coalesce(summary_row.get("weight_blend"), config_values.get("weight_blend"))
             is_dynamic = summary_row.get("is_dynamic", config_values["is_dynamic"])
             status = summary_row.get("status", "Completed")
         else:
@@ -183,6 +193,9 @@ def load_experiment_catalog(experiments_root: str | Path) -> pd.DataFrame:
             training_years = 2 if run_key.endswith("_2y") else 4
             training_months = config_values.get("training_months") or int(training_years * 12)
             alpha = config_values.get("alpha")
+            turnover_penalty = config_values.get("turnover_penalty")
+            max_weight = config_values.get("max_weight")
+            weight_blend = config_values.get("weight_blend")
             is_dynamic = config_values["is_dynamic"]
             status = "Completed"
 
@@ -207,6 +220,13 @@ def load_experiment_catalog(experiments_root: str | Path) -> pd.DataFrame:
                 "training_years": float(training_years),
                 "training_months": int(training_months or round(float(training_years) * 12)),
                 "alpha": float(alpha) if alpha is not None and pd.notna(alpha) else math.nan,
+                "turnover_penalty": float(turnover_penalty)
+                if turnover_penalty is not None and pd.notna(turnover_penalty)
+                else math.nan,
+                "max_weight": float(max_weight) if max_weight is not None and pd.notna(max_weight) else math.nan,
+                "weight_blend": float(weight_blend)
+                if weight_blend is not None and pd.notna(weight_blend)
+                else math.nan,
                 "is_dynamic": bool(is_dynamic),
                 "status": str(status),
                 "cagr": float(analytics["cagr"]),
@@ -229,7 +249,7 @@ def load_experiment_catalog(experiments_root: str | Path) -> pd.DataFrame:
     if catalog.empty:
         return catalog
     return catalog.sort_values(
-        ["cagr", "sharpe_ratio", "run_key"],
+        ["sharpe_ratio", "cagr", "run_key"],
         ascending=[False, False, True],
     ).reset_index(drop=True)
 
@@ -392,11 +412,58 @@ def annual_subfactor_comparison(weights: pd.DataFrame) -> pd.DataFrame:
     ).reset_index(drop=True)
 
 
+def annual_top_subfactor_segments(weights: pd.DataFrame, top_n: int = 5) -> pd.DataFrame:
+    """Return stacked annual top-subfactor segments by experiment."""
+    annual = annual_subfactor_comparison(weights)
+    if annual.empty:
+        return annual
+
+    ranked = annual.dropna(subset=["weight", "Subfactor", "Factor"]).copy()
+    ranked = ranked[ranked["weight"] > 0]
+    if ranked.empty:
+        return pd.DataFrame()
+
+    ranked = ranked.sort_values(
+        ["experiment", "year", "weight", "Subfactor"],
+        ascending=[True, True, False, True],
+    )
+    ranked["rank"] = ranked.groupby(["experiment", "year"]).cumcount() + 1
+    top = ranked[ranked["rank"] <= top_n].copy()
+    top = top.sort_values(["experiment", "year", "rank"]).reset_index(drop=True)
+
+    grouped = top.groupby(["experiment", "year"])["weight"]
+    top["cum_end"] = grouped.cumsum()
+    top["cum_start"] = top["cum_end"] - top["weight"]
+    top["label_y"] = top["cum_start"] + top["weight"] / 2
+    top["top_weight"] = top.groupby(["experiment", "year"])["weight"].transform("sum")
+    top["segment_label"] = top.apply(
+        lambda row: f"{row['Subfactor']} · {row['weight']:.0%}",
+        axis=1,
+    )
+    return top
+
+
 def build_short_label(row: pd.Series) -> str:
     dynamics = "Dinámicos" if bool(row["is_dynamic"]) else "Fijos"
     alpha = f"α {row['alpha']:.2f} · " if pd.notna(row.get("alpha")) else ""
+    smoothing = format_smoothing_label(row)
+    smoothing = f"{smoothing} · " if smoothing else ""
     return (
         f"{row['schema_label']} · N{int(row['n_positions'])} · "
         f"{row['target_vol']:.0%} vol · {row['max_leverage']:.1f}x · "
-        f"{row['weights_mode_label']} · {alpha}{int(row['training_months'])}m · {dynamics}"
+        f"{row['weights_mode_label']} · {alpha}{smoothing}{int(row['training_months'])}m · {dynamics}"
     )
+
+
+def format_smoothing_label(row: pd.Series) -> str:
+    parts: list[str] = []
+    turnover_penalty = row.get("turnover_penalty")
+    max_weight = row.get("max_weight")
+    weight_blend = row.get("weight_blend")
+    if turnover_penalty is not None and pd.notna(turnover_penalty):
+        parts.append(f"pen {float(turnover_penalty):g}")
+    if max_weight is not None and pd.notna(max_weight):
+        parts.append(f"cap {float(max_weight):.0%}")
+    if weight_blend is not None and pd.notna(weight_blend):
+        parts.append(f"blend {float(weight_blend):.0%}")
+    return " · ".join(parts)
