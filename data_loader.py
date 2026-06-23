@@ -12,6 +12,7 @@ import yaml
 
 SCHEMA_LABELS = {
     "EM_Fijo": "EM fijo",
+    "EM_Fijo_Reentrenado": "EM fijo reentrenado",
     "HRP_Fijo": "HRP fijo",
     "HRPRolling": "HRP rolling",
     "KalmanEM_SB": "Kalman EM · Style buckets",
@@ -132,6 +133,7 @@ def _fallback_config_values(config_path: Path) -> dict:
         "end_date": testing.get("end_date"),
         "alpha": experiment.get("alpha"),
         "training_months": experiment.get("training_months"),
+        "hold_months": experiment.get("hold_months"),
         "turnover_penalty": experiment.get("turnover_penalty"),
         "max_weight": experiment.get("max_weight"),
         "weight_blend": experiment.get("weight_blend"),
@@ -176,6 +178,7 @@ def load_experiment_catalog(experiments_root: str | Path) -> pd.DataFrame:
                 config_values.get("training_months"),
             )
             alpha = _coalesce(summary_row.get("alpha"), config_values.get("alpha"))
+            hold_months = _coalesce(summary_row.get("hold_months"), config_values.get("hold_months"))
             turnover_penalty = _coalesce(
                 summary_row.get("turnover_penalty"),
                 config_values.get("turnover_penalty"),
@@ -193,6 +196,7 @@ def load_experiment_catalog(experiments_root: str | Path) -> pd.DataFrame:
             training_years = 2 if run_key.endswith("_2y") else 4
             training_months = config_values.get("training_months") or int(training_years * 12)
             alpha = config_values.get("alpha")
+            hold_months = config_values.get("hold_months")
             turnover_penalty = config_values.get("turnover_penalty")
             max_weight = config_values.get("max_weight")
             weight_blend = config_values.get("weight_blend")
@@ -219,6 +223,7 @@ def load_experiment_catalog(experiments_root: str | Path) -> pd.DataFrame:
                 "weights_mode_label": WEIGHTS_MODE_LABELS.get(str(weights_mode), str(weights_mode)),
                 "training_years": float(training_years),
                 "training_months": int(training_months or round(float(training_years) * 12)),
+                "hold_months": float(hold_months) if hold_months is not None and pd.notna(hold_months) else math.nan,
                 "alpha": float(alpha) if alpha is not None and pd.notna(alpha) else math.nan,
                 "turnover_penalty": float(turnover_penalty)
                 if turnover_penalty is not None and pd.notna(turnover_penalty)
@@ -446,12 +451,13 @@ def annual_top_subfactor_segments(weights: pd.DataFrame, top_n: int = 5) -> pd.D
 def build_short_label(row: pd.Series) -> str:
     dynamics = "Dinámicos" if bool(row["is_dynamic"]) else "Fijos"
     alpha = f"α {row['alpha']:.2f} · " if pd.notna(row.get("alpha")) else ""
+    hold = f"bloque {int(row['hold_months'])}m · " if pd.notna(row.get("hold_months")) else ""
     smoothing = format_smoothing_label(row)
     smoothing = f"{smoothing} · " if smoothing else ""
     return (
         f"{row['schema_label']} · N{int(row['n_positions'])} · "
         f"{row['target_vol']:.0%} vol · {row['max_leverage']:.1f}x · "
-        f"{row['weights_mode_label']} · {alpha}{smoothing}{int(row['training_months'])}m · {dynamics}"
+        f"{row['weights_mode_label']} · {alpha}{smoothing}{int(row['training_months'])}m · {hold}{dynamics}"
     )
 
 

@@ -280,6 +280,7 @@ def reset_filters() -> None:
         "filter_leverage",
         "filter_mode",
         "filter_window",
+        "filter_hold",
         "filter_dynamic",
     ]:
         st.session_state[key] = "Todos"
@@ -299,6 +300,7 @@ def filter_catalog(catalog: pd.DataFrame) -> pd.DataFrame:
         "filter_leverage": "max_leverage",
         "filter_mode": "weights_mode_label",
         "filter_window": "training_months",
+        "filter_hold": "hold_months",
     }
     for state_key, column in mappings.items():
         value = st.session_state.get(state_key)
@@ -326,6 +328,7 @@ def table_frame(filtered: pd.DataFrame, selected: set[str]) -> pd.DataFrame:
             "Apalancamiento": filtered["max_leverage"],
             "Ponderación": filtered["weights_mode_label"],
             "Ventana": filtered["training_months"],
+            "Bloque": filtered["hold_months"],
             "Suavizado": filtered.apply(format_smoothing_label, axis=1),
             "CAGR": filtered["cagr"] * 100,
             "Sharpe": filtered["sharpe_ratio"],
@@ -399,7 +402,7 @@ if "selected_experiments" not in st.session_state:
         best_per_family["run_key"].tolist()
     )
 
-filter_columns = st.columns([1.18, .72, .62, .62, .72, .72, 1.0, .72, .55])
+filter_columns = st.columns([1.18, .72, .62, .62, .72, .72, 1.0, .72, .72, .55])
 with filter_columns[0]:
     select_filter("Esquema", sorted(catalog["schema_label"].unique()), "filter_schema")
 with filter_columns[1]:
@@ -418,6 +421,9 @@ with filter_columns[6]:
 with filter_columns[7]:
     select_filter("Ventana", sorted(catalog["training_months"].unique()), "filter_window", lambda x: f"{int(x)}m")
 with filter_columns[8]:
+    hold_values = sorted(int(value) for value in catalog["hold_months"].dropna().unique())
+    select_filter("Bloque", hold_values, "filter_hold", lambda x: f"{int(x)}m")
+with filter_columns[9]:
     st.markdown("<div style='height:1.74rem'></div>", unsafe_allow_html=True)
     st.button("Limpiar", use_container_width=True, on_click=reset_filters)
 
@@ -434,6 +440,7 @@ filter_signature = tuple(
         "filter_leverage",
         "filter_mode",
         "filter_window",
+        "filter_hold",
     ]
 )
 
@@ -455,6 +462,7 @@ column_config = {
     "Apalancamiento": st.column_config.NumberColumn(format="%.1fx"),
     "Ponderación": st.column_config.TextColumn(width="medium"),
     "Ventana": st.column_config.NumberColumn(format="%d meses"),
+    "Bloque": st.column_config.NumberColumn(format="%d meses"),
     "CAGR": st.column_config.NumberColumn(format="%.2f%%"),
     "Sharpe": st.column_config.NumberColumn(format="%.2f"),
     "Max drawdown": st.column_config.NumberColumn(format="%.2f%%"),
