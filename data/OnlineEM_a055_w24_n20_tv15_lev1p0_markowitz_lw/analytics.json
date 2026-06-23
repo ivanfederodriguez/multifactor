@@ -1,0 +1,19 @@
+{
+  "cagr": 0.084247,
+  "annual_volatility": 0.157441,
+  "sharpe_ratio": 0.5351,
+  "max_drawdown": -0.363212,
+  "calmar_ratio": 0.2319,
+  "monthly_win_rate_pct": 60.14,
+  "total_trading_days": 2997,
+  "benchmark": {
+    "cagr": 0.105971,
+    "annual_volatility": 0.128191,
+    "sharpe_ratio": 0.8267,
+    "max_drawdown": -0.256432,
+    "calmar_ratio": 0.4133,
+    "monthly_win_rate_pct": 70.63,
+    "total_trading_days": 2997,
+    "scaled_by_exposure": "73.3%"
+  }
+}

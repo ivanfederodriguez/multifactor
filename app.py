@@ -367,9 +367,16 @@ if catalog.empty:
     st.stop()
 
 online_catalog = catalog[catalog["schema"] == "OnlineEM"]
+summary_path = DEFAULT_EXPERIMENTS_ROOT / "experiments_summary.csv"
+if summary_path.exists():
+    summary_frame = pd.read_csv(summary_path, usecols=lambda column: column in {"schema", "status"})
+    online_declared = summary_frame[summary_frame["schema"] == "OnlineEM"]
+    online_total = len(online_declared)
+else:
+    online_total = len(online_catalog)
 kpi_columns = st.columns(4)
 kpi_columns[0].metric("Experimentos completos", f"{len(catalog):,}")
-kpi_columns[1].metric("Online EM completos", f"{len(online_catalog):,}")
+kpi_columns[1].metric("Online EM completos", f"{len(online_catalog):,} / {online_total:,}")
 kpi_columns[2].metric("Mejor CAGR", f"{catalog['cagr'].max():.2%}")
 kpi_columns[3].metric("Mejor Sharpe", f"{catalog['sharpe_ratio'].max():.2f}")
 
