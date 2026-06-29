@@ -1,19 +1,19 @@
 {
-  "cagr": 0.110255,
-  "annual_volatility": 0.13246,
-  "sharpe_ratio": 0.8324,
-  "max_drawdown": -0.398686,
-  "calmar_ratio": 0.2765,
+  "cagr": 0.105782,
+  "annual_volatility": 0.13253,
+  "sharpe_ratio": 0.7982,
+  "max_drawdown": -0.39867,
+  "calmar_ratio": 0.2653,
   "monthly_win_rate_pct": 64.34,
   "total_trading_days": 2997,
   "benchmark": {
-    "cagr": 0.096298,
-    "annual_volatility": 0.102682,
-    "sharpe_ratio": 0.9378,
-    "max_drawdown": -0.208371,
-    "calmar_ratio": 0.4621,
+    "cagr": 0.096352,
+    "annual_volatility": 0.102818,
+    "sharpe_ratio": 0.9371,
+    "max_drawdown": -0.208632,
+    "calmar_ratio": 0.4618,
     "monthly_win_rate_pct": 70.63,
     "total_trading_days": 2997,
-    "scaled_by_exposure": "58.7%"
+    "scaled_by_exposure": "58.8%"
   }
 }

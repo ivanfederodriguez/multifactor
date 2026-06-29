@@ -274,6 +274,7 @@ def select_filter(label: str, values: list, key: str, format_func=None):
 def reset_filters() -> None:
     for key in [
         "filter_schema",
+        "filter_normalization",
         "filter_positions",
         "filter_alpha",
         "filter_vol",
@@ -294,6 +295,7 @@ def filter_catalog(catalog: pd.DataFrame) -> pd.DataFrame:
     filtered = catalog.copy()
     mappings = {
         "filter_schema": "schema_label",
+        "filter_normalization": "normalizacion_label",
         "filter_positions": "n_positions",
         "filter_alpha": "alpha",
         "filter_vol": "target_vol",
@@ -321,6 +323,7 @@ def table_frame(filtered: pd.DataFrame, selected: set[str]) -> pd.DataFrame:
             "_run_key": filtered["run_key"],
             "Comparar": filtered["run_key"].isin(selected),
             "Esquema": filtered["schema_label"],
+            "Normalización": filtered["normalizacion_label"],
             "Pesos dinámicos": filtered["is_dynamic"].map({True: "Sí", False: "No"}),
             "Posiciones": filtered["n_positions"],
             "Alpha": filtered["alpha"],
@@ -402,28 +405,30 @@ if "selected_experiments" not in st.session_state:
         best_per_family["run_key"].tolist()
     )
 
-filter_columns = st.columns([1.18, .72, .62, .62, .72, .72, 1.0, .72, .72, .55])
+filter_columns = st.columns([1.05, .95, .66, .56, .56, .66, .66, .9, .62, .62, .5])
 with filter_columns[0]:
     select_filter("Esquema", sorted(catalog["schema_label"].unique()), "filter_schema")
 with filter_columns[1]:
-    select_filter("Pesos dinámicos", ["Sí", "No"], "filter_dynamic")
+    select_filter("Normalización", sorted(catalog["normalizacion_label"].unique()), "filter_normalization")
 with filter_columns[2]:
-    select_filter("Posiciones", sorted(catalog["n_positions"].unique()), "filter_positions")
+    select_filter("Pesos dinámicos", ["Sí", "No"], "filter_dynamic")
 with filter_columns[3]:
+    select_filter("Posiciones", sorted(catalog["n_positions"].unique()), "filter_positions")
+with filter_columns[4]:
     alpha_values = sorted(catalog["alpha"].dropna().unique())
     select_filter("Alpha", alpha_values, "filter_alpha", lambda x: f"{x:.2f}")
-with filter_columns[4]:
-    select_filter("Vol. objetivo", sorted(catalog["target_vol"].unique()), "filter_vol", lambda x: f"{x:.0%}")
 with filter_columns[5]:
-    select_filter("Apalancamiento", sorted(catalog["max_leverage"].unique()), "filter_leverage", lambda x: f"{x:.1f}x")
+    select_filter("Vol. objetivo", sorted(catalog["target_vol"].unique()), "filter_vol", lambda x: f"{x:.0%}")
 with filter_columns[6]:
-    select_filter("Ponderación", sorted(catalog["weights_mode_label"].unique()), "filter_mode")
+    select_filter("Apalancamiento", sorted(catalog["max_leverage"].unique()), "filter_leverage", lambda x: f"{x:.1f}x")
 with filter_columns[7]:
-    select_filter("Ventana", sorted(catalog["training_months"].unique()), "filter_window", lambda x: f"{int(x)}m")
+    select_filter("Ponderación", sorted(catalog["weights_mode_label"].unique()), "filter_mode")
 with filter_columns[8]:
+    select_filter("Ventana", sorted(catalog["training_months"].unique()), "filter_window", lambda x: f"{int(x)}m")
+with filter_columns[9]:
     hold_values = sorted(int(value) for value in catalog["hold_months"].dropna().unique())
     select_filter("Bloque", hold_values, "filter_hold", lambda x: f"{int(x)}m")
-with filter_columns[9]:
+with filter_columns[10]:
     st.markdown("<div style='height:1.74rem'></div>", unsafe_allow_html=True)
     st.button("Limpiar", use_container_width=True, on_click=reset_filters)
 
@@ -433,6 +438,7 @@ filter_signature = tuple(
     st.session_state.get(key, "Todos")
     for key in [
         "filter_schema",
+        "filter_normalization",
         "filter_dynamic",
         "filter_positions",
         "filter_alpha",
@@ -455,6 +461,7 @@ table = table_frame(filtered, st.session_state.table_initial_selection)
 column_config = {
     "_run_key": None,
     "Esquema": st.column_config.TextColumn(width="medium"),
+    "Normalización": st.column_config.TextColumn(width="medium"),
     "Pesos dinámicos": st.column_config.TextColumn(width="small"),
     "Posiciones": st.column_config.NumberColumn(format="%d"),
     "Alpha": st.column_config.NumberColumn(format="%.2f"),

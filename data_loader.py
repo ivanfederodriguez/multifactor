@@ -22,6 +22,11 @@ SCHEMA_LABELS = {
     "OnlineEMSmooth": "Online EM suave",
 }
 
+NORMALIZATION_LABELS = {
+    "optimizacion": "Optimización completa",
+    "decarte": "Decarte · salteo/residual",
+}
+
 WEIGHTS_MODE_LABELS = {
     "equal": "Igual",
     "hrp": "HRP",
@@ -35,6 +40,7 @@ FACTOR_LABELS = {
     "factor_w_momentum": "Momentum",
     "factor_w_revisions": "Revisions",
     "factor_w_prof_momentum": "Profitability momentum",
+    "factor_w_extra": "Low volatility",
     "factor_w_lowvol": "Low volatility",
 }
 
@@ -137,6 +143,8 @@ def _fallback_config_values(config_path: Path) -> dict:
         "turnover_penalty": experiment.get("turnover_penalty"),
         "max_weight": experiment.get("max_weight"),
         "weight_blend": experiment.get("weight_blend"),
+        "normalizacion": experiment.get("normalizacion"),
+        "source_run_key": experiment.get("source_run_key"),
     }
 
 
@@ -185,6 +193,8 @@ def load_experiment_catalog(experiments_root: str | Path) -> pd.DataFrame:
             )
             max_weight = _coalesce(summary_row.get("max_weight"), config_values.get("max_weight"))
             weight_blend = _coalesce(summary_row.get("weight_blend"), config_values.get("weight_blend"))
+            normalizacion = _coalesce(summary_row.get("normalizacion"), config_values.get("normalizacion"))
+            source_run_key = _coalesce(summary_row.get("source_run_key"), config_values.get("source_run_key"))
             is_dynamic = summary_row.get("is_dynamic", config_values["is_dynamic"])
             status = summary_row.get("status", "Completed")
         else:
@@ -200,11 +210,17 @@ def load_experiment_catalog(experiments_root: str | Path) -> pd.DataFrame:
             turnover_penalty = config_values.get("turnover_penalty")
             max_weight = config_values.get("max_weight")
             weight_blend = config_values.get("weight_blend")
+            normalizacion = config_values.get("normalizacion") or (
+                "decarte" if run_key.endswith("_decarte") else "optimizacion"
+            )
+            source_run_key = config_values.get("source_run_key")
             is_dynamic = config_values["is_dynamic"]
             status = "Completed"
 
         if isinstance(is_dynamic, str):
             is_dynamic = is_dynamic.strip().lower() in {"true", "1", "yes", "si", "sí"}
+        if normalizacion is None or pd.isna(normalizacion):
+            normalizacion = "decarte" if run_key.endswith("_decarte") else "optimizacion"
 
         nav = pd.read_csv(folder / "portfolio_nav.csv", index_col=0, usecols=[0, 1])
         nav_values = pd.to_numeric(nav["nav"], errors="coerce").dropna()
@@ -216,6 +232,14 @@ def load_experiment_catalog(experiments_root: str | Path) -> pd.DataFrame:
                 "run_key": run_key,
                 "schema": str(schema),
                 "schema_label": SCHEMA_LABELS.get(str(schema), str(schema).replace("_", " ")),
+                "normalizacion": str(normalizacion),
+                "normalizacion_label": NORMALIZATION_LABELS.get(
+                    str(normalizacion),
+                    str(normalizacion).replace("_", " ").title(),
+                ),
+                "source_run_key": str(source_run_key)
+                if source_run_key is not None and pd.notna(source_run_key)
+                else "",
                 "n_positions": int(n_positions),
                 "target_vol": float(target_vol),
                 "max_leverage": float(max_leverage),
@@ -454,10 +478,12 @@ def build_short_label(row: pd.Series) -> str:
     hold = f"bloque {int(row['hold_months'])}m · " if pd.notna(row.get("hold_months")) else ""
     smoothing = format_smoothing_label(row)
     smoothing = f"{smoothing} · " if smoothing else ""
+    normalization = f"{row['normalizacion_label']} · " if row.get("normalizacion_label") else ""
     return (
         f"{row['schema_label']} · N{int(row['n_positions'])} · "
         f"{row['target_vol']:.0%} vol · {row['max_leverage']:.1f}x · "
-        f"{row['weights_mode_label']} · {alpha}{smoothing}{int(row['training_months'])}m · {hold}{dynamics}"
+        f"{row['weights_mode_label']} · {normalization}{alpha}{smoothing}"
+        f"{int(row['training_months'])}m · {hold}{dynamics}"
     )
 
 
