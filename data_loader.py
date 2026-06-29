@@ -18,8 +18,8 @@ SCHEMA_LABELS = {
     "KalmanEM_SB": "Kalman EM · Style buckets",
     "KalmanEM_base": "Kalman EM · Base",
     "SB_Fijo": "Style buckets fijo",
-    "OnlineEM": "Online EM · one-step smoother",
-    "OnlineEMSmooth": "Online EM suave",
+    "OnlineEM": "Online EM · proximal smooth",
+    "OnlineEMSmooth": "Online EM suave (legacy)",
 }
 
 NORMALIZATION_LABELS = {
@@ -138,9 +138,15 @@ def _fallback_config_values(config_path: Path) -> dict:
         "start_date": testing.get("start_date"),
         "end_date": testing.get("end_date"),
         "alpha": experiment.get("alpha"),
+        "weight_model": experiment.get("weight_model"),
         "training_months": experiment.get("training_months"),
         "hold_months": experiment.get("hold_months"),
+        "risk_aversion": experiment.get("risk_aversion"),
         "turnover_penalty": experiment.get("turnover_penalty"),
+        "target_turnover": experiment.get("target_turnover"),
+        "max_turnover": experiment.get("max_turnover"),
+        "lambda_min": experiment.get("lambda_min"),
+        "lambda_max": experiment.get("lambda_max"),
         "max_weight": experiment.get("max_weight"),
         "weight_blend": experiment.get("weight_blend"),
         "normalizacion": experiment.get("normalizacion"),
@@ -160,6 +166,12 @@ def load_experiment_catalog(experiments_root: str | Path) -> pd.DataFrame:
     records: list[dict] = []
     for folder in sorted(path for path in root.iterdir() if path.is_dir()):
         run_key = folder.name
+        if (
+            not summary.empty
+            and run_key not in summary.index
+            and run_key.startswith(("OnlineEM_", "OnlineEMSmooth_"))
+        ):
+            continue
         required_files = [
             folder / "analytics.json",
             folder / "config.yaml",
@@ -186,11 +198,20 @@ def load_experiment_catalog(experiments_root: str | Path) -> pd.DataFrame:
                 config_values.get("training_months"),
             )
             alpha = _coalesce(summary_row.get("alpha"), config_values.get("alpha"))
+            weight_model = _coalesce(summary_row.get("weight_model"), config_values.get("weight_model"))
             hold_months = _coalesce(summary_row.get("hold_months"), config_values.get("hold_months"))
+            risk_aversion = _coalesce(summary_row.get("risk_aversion"), config_values.get("risk_aversion"))
             turnover_penalty = _coalesce(
                 summary_row.get("turnover_penalty"),
                 config_values.get("turnover_penalty"),
             )
+            target_turnover = _coalesce(
+                summary_row.get("target_turnover"),
+                config_values.get("target_turnover"),
+            )
+            max_turnover = _coalesce(summary_row.get("max_turnover"), config_values.get("max_turnover"))
+            lambda_min = _coalesce(summary_row.get("lambda_min"), config_values.get("lambda_min"))
+            lambda_max = _coalesce(summary_row.get("lambda_max"), config_values.get("lambda_max"))
             max_weight = _coalesce(summary_row.get("max_weight"), config_values.get("max_weight"))
             weight_blend = _coalesce(summary_row.get("weight_blend"), config_values.get("weight_blend"))
             normalizacion = _coalesce(summary_row.get("normalizacion"), config_values.get("normalizacion"))
@@ -206,8 +227,14 @@ def load_experiment_catalog(experiments_root: str | Path) -> pd.DataFrame:
             training_years = 2 if run_key.endswith("_2y") else 4
             training_months = config_values.get("training_months") or int(training_years * 12)
             alpha = config_values.get("alpha")
+            weight_model = config_values.get("weight_model")
             hold_months = config_values.get("hold_months")
+            risk_aversion = config_values.get("risk_aversion")
             turnover_penalty = config_values.get("turnover_penalty")
+            target_turnover = config_values.get("target_turnover")
+            max_turnover = config_values.get("max_turnover")
+            lambda_min = config_values.get("lambda_min")
+            lambda_max = config_values.get("lambda_max")
             max_weight = config_values.get("max_weight")
             weight_blend = config_values.get("weight_blend")
             normalizacion = config_values.get("normalizacion") or (
@@ -249,8 +276,26 @@ def load_experiment_catalog(experiments_root: str | Path) -> pd.DataFrame:
                 "training_months": int(training_months or round(float(training_years) * 12)),
                 "hold_months": float(hold_months) if hold_months is not None and pd.notna(hold_months) else math.nan,
                 "alpha": float(alpha) if alpha is not None and pd.notna(alpha) else math.nan,
+                "weight_model": str(weight_model)
+                if weight_model is not None and pd.notna(weight_model)
+                else "",
+                "risk_aversion": float(risk_aversion)
+                if risk_aversion is not None and pd.notna(risk_aversion)
+                else math.nan,
                 "turnover_penalty": float(turnover_penalty)
                 if turnover_penalty is not None and pd.notna(turnover_penalty)
+                else math.nan,
+                "target_turnover": float(target_turnover)
+                if target_turnover is not None and pd.notna(target_turnover)
+                else math.nan,
+                "max_turnover": float(max_turnover)
+                if max_turnover is not None and pd.notna(max_turnover)
+                else math.nan,
+                "lambda_min": float(lambda_min)
+                if lambda_min is not None and pd.notna(lambda_min)
+                else math.nan,
+                "lambda_max": float(lambda_max)
+                if lambda_max is not None and pd.notna(lambda_max)
                 else math.nan,
                 "max_weight": float(max_weight) if max_weight is not None and pd.notna(max_weight) else math.nan,
                 "weight_blend": float(weight_blend)
@@ -489,13 +534,27 @@ def build_short_label(row: pd.Series) -> str:
 
 def format_smoothing_label(row: pd.Series) -> str:
     parts: list[str] = []
+    weight_model = row.get("weight_model")
+    target_turnover = row.get("target_turnover")
+    max_turnover = row.get("max_turnover")
     turnover_penalty = row.get("turnover_penalty")
     max_weight = row.get("max_weight")
     weight_blend = row.get("weight_blend")
-    if turnover_penalty is not None and pd.notna(turnover_penalty):
+
+    if isinstance(weight_model, str) and weight_model:
+        parts.append("prox" if weight_model == "proximal_smooth" else weight_model)
+    if target_turnover is not None and pd.notna(target_turnover):
+        parts.append(f"turn {float(target_turnover):.0%}")
+    if max_turnover is not None and pd.notna(max_turnover):
+        parts.append(f"max turn {float(max_turnover):.0%}")
+    if (
+        turnover_penalty is not None
+        and pd.notna(turnover_penalty)
+        and (target_turnover is None or pd.isna(target_turnover))
+    ):
         parts.append(f"pen {float(turnover_penalty):g}")
     if max_weight is not None and pd.notna(max_weight):
         parts.append(f"cap {float(max_weight):.0%}")
-    if weight_blend is not None and pd.notna(weight_blend):
+    if weight_blend is not None and pd.notna(weight_blend) and abs(float(weight_blend) - 1.0) > 1e-12:
         parts.append(f"blend {float(weight_blend):.0%}")
     return " · ".join(parts)
