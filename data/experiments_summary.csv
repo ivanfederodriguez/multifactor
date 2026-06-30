@@ -146,7 +146,7 @@ HRP_Fijo_30_0.15_4.0_markowitz_lw_2y,HRP_Fijo,30,0.15,4.0,markowitz_lw,2.0,False
 KalmanEM_SB_30_0.10_1.0_markowitz_lw_2y_decarte,KalmanEM_SB,30,0.1,1.0,markowitz_lw,2.0,True,Completed,0.055935,0.4256,-0.480729,,,0.131439,0.1164,63.64,,,,,,,,decarte,,,,,,
 HRPRolling_30_0.10_1.0_markowitz_lw_2y_decarte,HRPRolling,30,0.1,1.0,markowitz_lw,2.0,True,Completed,0.055935,0.4256,-0.480729,,,0.131439,0.1164,63.64,,,,,,,,decarte,,,,,,
 KalmanEM_base_30_0.10_1.0_markowitz_lw_2y_decarte,KalmanEM_base,30,0.1,1.0,markowitz_lw,2.0,True,Completed,0.055935,0.4256,-0.480729,,,0.131439,0.1164,63.64,,,,,,,,decarte,,,,,,
-EM_Fijo_Reentrenado_20_0.10_1.0_markowitz_lw_2y_h42_decarte,EM_Fijo_Reentrenado,20,0.1,1.0,markowitz_lw,2.0,True,Pending,,,,,24.0,,,,,,,,,EM_Fijo_20_0.10_1.0_markowitz_lw_2y,42.0,decarte,,,,,,
+EM_Fijo_Reentrenado_20_0.10_1.0_markowitz_lw_2y_h42_decarte,EM_Fijo_Reentrenado,20,0.1,1.0,markowitz_lw,2.0,True,Completed,0.062132,0.496,-0.349397,,24.0,0.125255,0.1778,59.44,,,,,,EM_Fijo_20_0.10_1.0_markowitz_lw_2y,42.0,decarte,,,,,,
 HRPRolling_30_0.10_1.0_equal_2y_decarte,HRPRolling,30,0.1,1.0,equal,2.0,True,Completed,0.05922,0.4433,-0.427737,,,0.133602,0.1385,62.24,,,,,,,,decarte,,,,,,
 KalmanEM_SB_30_0.10_1.0_equal_2y_decarte,KalmanEM_SB,30,0.1,1.0,equal,2.0,True,Completed,0.05922,0.4433,-0.427737,,,0.133602,0.1385,62.24,,,,,,,,decarte,,,,,,
 KalmanEM_base_30_0.10_1.0_equal_2y_decarte,KalmanEM_base,30,0.1,1.0,equal,2.0,True,Completed,0.05922,0.4433,-0.427737,,,0.133602,0.1385,62.24,,,,,,,,decarte,,,,,,
