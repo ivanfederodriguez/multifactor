@@ -3,8 +3,8 @@
 Este directorio auto-contenido fue generado para realizar un deploy rápido y gratuito.
 Contiene únicamente el código del dashboard y los datos filtrados esenciales de los experimentos.
 
-**Tamaño de datos optimizado:** 222.20 MB (vs ~1.7 GB originales).
-**Experimentos incluidos:** 318
+**Tamaño de datos optimizado:** 223.54 MB (vs ~1.7 GB originales).
+**Experimentos incluidos:** 320
 
 ## ¿Cómo deployar de forma gratuita?
 
