@@ -291,14 +291,14 @@ OnlineEM_a055_w24_prox_tt08_mt15_cap35_n20_tv15_lev1p0_equal,OnlineEM,20,0.15,1.
 OnlineEM_a055_w24_prox_tt08_mt15_cap35_n20_tv15_lev1p0_hrp,OnlineEM,20,0.15,1.0,hrp,2.0,True,Completed,0.124317,0.8105,-0.350425,0.55,24.0,0.153384,0.3548,66.43,1.0,0.35,,,,,,optimizacion,proximal_smooth,1.0,0.08,0.15,0.0,500.0
 OnlineEM_a055_w24_prox_tt08_mt15_cap35_n20_tv15_lev1p0_markowitz_lw,OnlineEM,20,0.15,1.0,markowitz_lw,2.0,True,Completed,0.150688,0.8965,-0.369913,0.55,24.0,0.168081,0.4074,69.23,1.0,0.35,,,,,,optimizacion,proximal_smooth,1.0,0.08,0.15,0.0,500.0
 OnlineEM_a055_w48_prox_tt08_mt15_cap35_n20_tv10_lev1p0_equal,OnlineEM,20,0.1,1.0,equal,4.0,True,Pending,,,,0.55,48.0,,,,1.0,0.35,,,,,,optimizacion,proximal_smooth,1.0,0.08,0.15,0.0,500.0
-OnlineEM_a055_w48_prox_tt08_mt15_cap35_n20_tv10_lev1p0_hrp,OnlineEM,20,0.1,1.0,hrp,4.0,True,Pending,,,,0.55,48.0,,,,1.0,0.35,,,,,,optimizacion,proximal_smooth,1.0,0.08,0.15,0.0,500.0
+OnlineEM_a055_w48_prox_tt08_mt15_cap35_n20_tv10_lev1p0_hrp,OnlineEM,20,0.1,1.0,hrp,4.0,True,Completed,0.064957,0.4955,-0.419765,0.55,48.0,0.13109,0.1547,64.34,1.0,0.35,,,,,,optimizacion,proximal_smooth,1.0,0.08,0.15,0.0,500.0
 OnlineEM_a055_w48_prox_tt08_mt15_cap35_n20_tv10_lev1p0_markowitz_lw,OnlineEM,20,0.1,1.0,markowitz_lw,4.0,True,Pending,,,,0.55,48.0,,,,1.0,0.35,,,,,,optimizacion,proximal_smooth,1.0,0.08,0.15,0.0,500.0
 OnlineEM_a055_w48_prox_tt08_mt15_cap35_n20_tv15_lev1p0_equal,OnlineEM,20,0.15,1.0,equal,4.0,True,Pending,,,,0.55,48.0,,,,1.0,0.35,,,,,,optimizacion,proximal_smooth,1.0,0.08,0.15,0.0,500.0
 OnlineEM_a055_w48_prox_tt08_mt15_cap35_n20_tv15_lev1p0_hrp,OnlineEM,20,0.15,1.0,hrp,4.0,True,Pending,,,,0.55,48.0,,,,1.0,0.35,,,,,,optimizacion,proximal_smooth,1.0,0.08,0.15,0.0,500.0
 OnlineEM_a055_w48_prox_tt08_mt15_cap35_n20_tv15_lev1p0_markowitz_lw,OnlineEM,20,0.15,1.0,markowitz_lw,4.0,True,Pending,,,,0.55,48.0,,,,1.0,0.35,,,,,,optimizacion,proximal_smooth,1.0,0.08,0.15,0.0,500.0
 OnlineEM_a055_w24_prox_tt08_mt15_cap35_n20_tv10_lev2p0_equal,OnlineEM,20,0.1,2.0,equal,2.0,True,Pending,,,,0.55,24.0,,,,1.0,0.35,,,,,,optimizacion,proximal_smooth,1.0,0.08,0.15,0.0,500.0
 OnlineEM_a055_w24_prox_tt08_mt15_cap35_n20_tv10_lev2p0_hrp,OnlineEM,20,0.1,2.0,hrp,2.0,True,Pending,,,,0.55,24.0,,,,1.0,0.35,,,,,,optimizacion,proximal_smooth,1.0,0.08,0.15,0.0,500.0
-OnlineEM_a055_w24_prox_tt08_mt15_cap35_n20_tv10_lev2p0_markowitz_lw,OnlineEM,20,0.1,2.0,markowitz_lw,2.0,True,Pending,,,,0.55,24.0,,,,1.0,0.35,,,,,,optimizacion,proximal_smooth,1.0,0.08,0.15,0.0,500.0
+OnlineEM_a055_w24_prox_tt08_mt15_cap35_n20_tv10_lev2p0_markowitz_lw,OnlineEM,20,0.1,2.0,markowitz_lw,2.0,True,Completed,0.097342,0.7062,-0.344516,0.55,24.0,0.137844,0.2825,66.43,1.0,0.35,,,,,,optimizacion,proximal_smooth,1.0,0.08,0.15,0.0,500.0
 OnlineEM_a055_w24_prox_tt08_mt15_cap35_n20_tv15_lev2p0_equal,OnlineEM,20,0.15,2.0,equal,2.0,True,Pending,,,,0.55,24.0,,,,1.0,0.35,,,,,,optimizacion,proximal_smooth,1.0,0.08,0.15,0.0,500.0
 OnlineEM_a055_w24_prox_tt08_mt15_cap35_n20_tv15_lev2p0_markowitz_lw,OnlineEM,20,0.15,2.0,markowitz_lw,2.0,True,Pending,,,,0.55,24.0,,,,1.0,0.35,,,,,,optimizacion,proximal_smooth,1.0,0.08,0.15,0.0,500.0
 OnlineEM_a055_w48_prox_tt08_mt15_cap35_n20_tv10_lev2p0_equal,OnlineEM,20,0.1,2.0,equal,4.0,True,Pending,,,,0.55,48.0,,,,1.0,0.35,,,,,,optimizacion,proximal_smooth,1.0,0.08,0.15,0.0,500.0
