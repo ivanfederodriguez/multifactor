@@ -1,0 +1,24 @@
+{
+  "date": "2026-09-26",
+  "repository_base_commit": "67ab160700c3ef4de376ac97cd6b40600c6e809f",
+  "package_version": "0.1.0",
+  "local_validation": {
+    "python": "3.11.15",
+    "packages": {"numpy": "2.4.6", "pandas": "3.0.3", "pyarrow": "24.0.0"},
+    "unit_tests_passed": 8,
+    "wheel_installed_outside_repository": true,
+    "wheel_test_environment": "isolated venv with inherited local dependencies; not a fresh dependency install",
+    "console_entrypoint_verified": true,
+    "upstream_code_identity_verified": true,
+    "base_b_full_score_regenerated_from_installed_wheel": true,
+    "source_sha256": "f95ed5f6750e39564bc7c5b186cb68e4a1c249232ecceb0982c4010ef27b61b0",
+    "output_sha256": "1837df55bed8eb50b05399a12e81a0a9c7a98308d66d5cd46b259a4722720996",
+    "rows": 197224,
+    "rated_rows": 196304,
+    "existing_dashboard_catalog_loaded": 362,
+    "economic_backtests_run_this_integration": false
+  },
+  "publication_scope": "Source, provenance hashes, docs, synthetic tests and an inactive CI template only. No new private market data or proprietary qbacktest code.",
+  "ci_template": "ci/luis-score.workflow.yml; not activated because publication credential lacks workflow scope",
+  "limitations": "Same-machine output identity is verified; universal cross-platform binary identity is not claimed. Existing dashboard results were not economically re-audited. Remote CI is separate from this local receipt."
+}

@@ -1,3 +1,4 @@
+# Dashboard dependencies only. Shared Luis score engine: python -m pip install -e .
 streamlit>=1.32,<2
 pandas>=2.0,<4
 numpy>=1.26,<3

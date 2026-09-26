@@ -1,5 +1,7 @@
 # Dashboard de Experimentos Multifactor (Deploy)
 
+Estas instrucciones corresponden al dashboard conservado. Para instalar y usar el nuevo generador compartido de scores de Luis, ver [README.md](README.md); este visor no ejecuta el scorer.
+
 Este directorio auto-contenido fue generado para realizar un deploy rápido y gratuito.
 Contiene únicamente el código del dashboard y los datos filtrados esenciales de los experimentos.
 

@@ -1,0 +1,23 @@
+{
+  "model": "Luis DQI v2",
+  "canonical_mode": "original_DQI_v2_scorer_on_mapped_common_raw_inputs",
+  "packaging_changes": {
+    "dqi_config.py": "none",
+    "dqi_factor_scores.py": "relative import of dqi_config only",
+    "dqi_prometheus_adapter.py": "relative import of dqi_factor_scores only"
+  },
+  "upstream_sha256": {
+    "dqi_config.py": "3849d05e044db0b361d80820ab376796f5d0ff606c55bb1db0c24946f50130c3",
+    "dqi_factor_scores.py": "be7801884d13c626ab213d10101119c9b6e686c92ae336caec7f1289fcc2134e",
+    "dqi_prometheus_adapter.py": "ed1e9eea3a157355bc0bf48ecf47e2ddeae18516072a01b3abd3ab99e1d494ec"
+  },
+  "base_b_reference": {
+    "source_sha256": "f95ed5f6750e39564bc7c5b186cb68e4a1c249232ecceb0982c4010ef27b61b0",
+    "scores_sha256": "1837df55bed8eb50b05399a12e81a0a9c7a98308d66d5cd46b259a4722720996",
+    "rows": 197224,
+    "rated_rows": 196304,
+    "months": 194
+  },
+  "known_gap": "Base B has no raw rd_intensity; it remains null. The original scorer renormalizes Growth across available subfactors.",
+  "scope": "Score generation only. No qbacktest implementation, prices, macro tape or private raw data is distributed."
+}

@@ -15,5 +15,22 @@ Thumbs.db
 venv/
 env/
 
+# Private score inputs and generated artifacts never belong in this public repo.
+private_data/
+inputs/
+outputs/
+artifacts/
+*.parquet
+*.feather
+*.zip
+*.manifest.json
+*.egg-info/
+build/
+dist/
+.env
+.env.*
+!.env.example
+/luis_dqi/cache/
+
 # NOTA: La carpeta data/ NO está en este gitignore porque necesitamos 
 # subir los datos procesados para el deploy en la nube.
