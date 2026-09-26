@@ -32,5 +32,5 @@ dist/
 !.env.example
 /luis_dqi/cache/
 
-# NOTA: La carpeta data/ NO está en este gitignore porque necesitamos 
-# subir los datos procesados para el deploy en la nube.
+# Real inputs belong outside the source repository.
+data/

@@ -1,6 +1,6 @@
 # Multifactor: shared Luis DQI v2 score engine
 
-Este repositorio ahora contiene el **mismo generador de scores de Luis para Clara e Iván**. El dashboard existente y sus 362 experimentos se conservan: son útiles como visor de resultados previos, pero no generaban scores ni forman la referencia de esta integración.
+Este repositorio contiene únicamente el **generador de scores de Luis para Clara e Iván**, su configuración, pruebas y documentación de integración.
 
 ## Instalar el scorer
 
@@ -50,10 +50,8 @@ Los archivos de cálculo y el adaptador coinciden con los previamente utilizados
 
 Este módulo **genera scores**, no ejecuta qbacktest ni decide cuándo abrir shorts. Para reproducir los experimentos con short, usar esta salida como `--scores-path` en el runner del paquete de Clara. El motor qbacktest y su licencia siguen separados. Ver [contrato de integración](docs/luis_dqi_integration.md).
 
-El dashboard sigue disponible con `python -m pip install -e '.[dashboard]'` y `streamlit run app.py`. Su código y `data/` permanecen sin cambios. Sus métricas previas no deben confundirse con backtests nuevos del scorer de Luis.
-
 Hay una plantilla de GitHub Actions en `ci/luis-score.workflow.yml`. No está activa: la credencial utilizada para publicar no permite crear workflows. Para habilitarla, un administrador con los permisos correspondientes puede copiarla a `.github/workflows/luis-score.yml`. Las pruebas locales se ejecutan con el comando de instalación anterior.
 
-## Revisión del repositorio
+## Datos y confidencialidad
 
-Ver [inventario y decisión de conservación](docs/repository_review_20260926.md). No se borró el dashboard ni el historial Git. Este repositorio es público: nunca agregar entradas Bloomberg/Base B, precios privados, credenciales ni el motor propietario.
+Este repositorio es público: nunca agregar entradas Bloomberg/Base B, precios privados, credenciales ni el motor propietario.
