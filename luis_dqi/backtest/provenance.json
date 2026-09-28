@@ -1,0 +1,49 @@
+{
+  "upstream_files_sha256": {
+    "run_case.py": "3932cdb53f00e13c684d502cfed2472201905c59b989bbbf0b2cf4dbd6f0ef75",
+    "run_markowitz_point3_20260926.py": "d4eb6209782e06cef5015a94f303d20cff6177f5d845117dcab8b88ff5fdec3b",
+    "run_strict_rebalance_20260928.py": "ce05957c55322e13ff176c4bcf474143dda10b5b0d5e9d6dd2b90b7b3c145624"
+  },
+  "definition_ast_sha256": {
+    "_engine_adapter.py": {
+      "sha": "16850bbb9ee06b468daf951802f35a23a1cdb2a435b3a092a32a5148ab950615",
+      "json_default": "eef5aca1685ae2da65e9e7190f00a119bf3c9f4be3796cbdcb7798119d3b5ffb",
+      "write_json": "5d3f383a74a195746ec7248e2640dbf75fb9d9a7e64c8c877e05bb9e24be8f94",
+      "StudyEquityPreset": "4d03a525a23b1a271a886fd87d21ce719fb944207537acb39b064ca2b50461b5",
+      "fee_reserved_weights": "8394c2cf66eaef85164deab45dc28b0e8f4a5b7d2cade1cd02f61408e5f78302",
+      "FrozenMonthlyStrategy": "e410287992a70bc047a1fef77141ab848ef697b90813889abb580b4562032cc7",
+      "make_decisions": "d0652d832dc36f544583672455d2d94d1c84c20a740dd821af49f58f0ae96bf6",
+      "build_engine": "2be334aef4e679c2fa630dad963ed492d89b0c82d05ddc916513a62a23f856b2",
+      "metrics_and_daily": "b4249f893c2a50c216f39200f85fab141612152b5b237e5e647c91b998201c0d",
+      "save_output": "c437314f73611972aa97c9c37fcb4d9e1ec53fb764847b18c6bb056190ca9b45"
+    },
+    "_markowitz.py": {
+      "sha256": "8362653afc4022293f1cf960982dbb55239af095bf6e0d2d29e0d4ecda66d220",
+      "capped_proportional_weights": "97ca10879d2d9d496eb3b22e0011afbfca10bbc2429f41a8579215765d242c68",
+      "stress_short_fraction": "8e1a3d4a81396fd8ab9809d9f520c7330f6bf41617ec710f17c6e23d3b34b180",
+      "markowitz_side_weights": "5cfd9fba24a44262dd7f44774c49a275c00961570132405f9d95c5b4a6bb0c8e",
+      "_rank_candidates": "d2026da3d0505d5421517ba8d471c44b736d5ed9369d0440c46877d99aee0722",
+      "_make_raw_target": "4d6e4134454d4c15bb88d922c275a6e33ad202a54cfbcf63ff00f980ea728534",
+      "_causal_macro": "c9173082c0f5be2d78f8a9e2281d1c5f001fa90abcb1042774715a4d69804d5e",
+      "_patched_make_decisions": "f0b4bf9f12d41cb56b4300012e536a6a5c16e0abd009e3aa537c83ba42525dcd",
+      "_last_close_before": "fe9e526b6f2e6b93ee75af6fc288c6c187f6be180c52f937560dd7553aaaa7cd",
+      "_latest_signal": "c03b00536fd3549d18c3a1f9aa5180f76a18ea28d6ba8d1fac7396f25dd3bbc1",
+      "_daily_decision": "ece66315eb8192621103539597f8b3ff3d0e4ccb1772ed4d5c262bb1b3d321fd",
+      "_actual_weights_at_previous_close": "3996a3a3538699641983fcf35edd6b13550e00edaffc71567157dcee159b0985",
+      "_current_stress_regime": "cb75cf7f222d3dfa30a037358a2c56c3c618b3b3f6d8f7c8aed837da86acd5f9",
+      "Point3Strategy": "bc6a8784b37955c3d333b122e1512cfeecf3f4fb60b865b2bfd13faf54eddad3"
+    },
+    "_strategy.py": {
+      "StrictPolicyStrategy": "be5377768a0b0cc2e36266cc82ac6f09abad783364944b3c4070dbf506f5bfc7"
+    },
+    "policies.py": {
+      "weight_gaps": "5c2d0c25bdc4284cbf61eee725624c311cf4203eb5401785cee5e1208a945efd",
+      "short_gap_trigger": "691a703005adad8d0df614eae55c5072ef2f30a0943b883eeb5042815b928d72",
+      "drift_trigger": "281048421dc5fa43ee059a4a371346a4adc3639cce87b568f6281216e11a9d67"
+    }
+  },
+  "policies_assignment_ast_sha256": "9d43685b6d7f362815500856dde527936bccff8fe557121391b78260eb21da84",
+  "description": "Economic definitions preserve the frozen research AST; only local bootstrap, input paths, CLI and manifest orchestration change.",
+  "engine_commit": "a9f0edbc1d0fdc3e318ca9e991027b4131fcf301",
+  "normalized_run_case_ast_sha256": "b378ab93f9b7609678dacb087d95f40df0117c5e304b4cba4c9a24a25892b762"
+}

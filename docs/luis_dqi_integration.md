@@ -1,27 +1,33 @@
 # Contrato del score con qbacktest
 
-La señal de Luis es independiente del motor de ejecución. `luis_dqi` conserva el scorer DQI v2 y produce una tabla con claves `date`, `symbol` y `composite_score`, más factores, subfactores y metadata. La generación no necesita macro ni precios de ejecución y no cambia pesos en función del estrés.
+`luis_dqi` conserva el scorer DQI v2 y produce claves `date`, `symbol`, `composite_score`, más factores y metadata. La generación del score no necesita macro ni precios de ejecución. Short y rebalanceo no modifican el score.
 
-## Uso con el paquete de Clara
+El módulo `luis_dqi.backtest` conecta esa cinta al **motor externo autorizado**, no a un simulador alternativo. No se distribuyen Broker, Portfolio, Environment ni archivos de qbacktest en este repositorio. Se exige un checkout Git de qbacktest en `a9f0edbc1d0fdc3e318ca9e991027b4131fcf301`, sin modificaciones a `src/qbacktest`. Un motor ya importado desde otra ubicación se rechaza.
 
-Generar y verificar `outputs/dqi_v2.parquet` siguiendo el README. En el runner compartido del paquete `DQI_qbacktest_Clara_20260924`, pasar su ruta absoluta:
+## Inputs y calendario
 
-```bash
-python analysis_dqi_v2_20260921/build/qbacktest_base_b_20260922/run_case.py \
-  --model dqi --scenario p50 \
-  --scores-path /ruta/a/multifactor/outputs/dqi_v2.parquet \
-  --output-dir /ruta/nueva/resultado_p50 \
-  --deadline-utc 2026-10-01T23:00:00+00:00
-```
+Los tres inputs son obligatorios y se reciben por rutas, sin archivos locales implícitos:
 
-El ejemplo se ejecuta **desde la carpeta del paquete de Clara**, que proporciona el registro mínimo de modelo, precios, macro y enlace a un motor autorizado. Reemplazar fecha de corte por una futura; no confundir este comando con una ejecución autocontenida desde este repo.
+- Scores parquet: `date`, `symbol`, `composite_score`, sin claves duplicadas.
+- Precios parquet: `date`, `symbol`, `close_price`, `volume_in_units`; no se fabrica volumen. Las claves pueden estar en el índice original.
+- Macro CSV: `BATCH_DATE`, `FIRST_TRADABLE_DATE`, `STRESS_PERCENTILE_0_100`.
 
-Referencia del motor autorizado: commit `a9f0edbc1d0fdc3e318ca9e991027b4131fcf301`. Runner auditado SHA-256: `3932cdb53f00e13c684d502cfed2472201905c59b989bbbf0b2cf4dbd6f0ef75`. No usar simplemente cualquier versión instalada de qbacktest.
+Una señal se ejecuta en la primera sesión observada estrictamente posterior a su fecha. El ranking usa precios finitos y positivos de la sesión exacta de corte, sin rellenar precios por ticker para decidir elegibilidad. Empates: símbolo ascendente. No se combinan señales anteriores al estudio en la primera barra.
 
-## Política externa del backtest
+La macro sólo se usa si `FIRST_TRADABLE_DATE <= execution_date` y `BATCH_DATE < execution_date`. El snapshot archivado **no certifica vintages históricos point-in-time**. En las variantes por eventos se mantienen las canastas del último score mensual; la covarianza y la distribución long/short sí pueden actualizarse a diario con información hasta el cierre anterior.
 
-Primera sesión estrictamente posterior al score, top20 long/bottom20 short, equal weight dentro de cada lado, target bruto 1. La parte corta objetivo es `0.20 * clip((stress - P)/(100 - P), 0, 1)` para P=50/75/90; LO usa cero. Se mantiene el scorer fijo: **agregar short no cambia el composite DQI**.
+## Asignación y ejecución
 
-El broker nativo aplica 10 pb de comisión y préstamo corto 2% anual ACT/360, con headroom técnico de leverage 1,5, no leverage objetivo. La macro y los precios del paquete son inputs separados, no datos publicados aquí. El snapshot macro no certifica vintages históricos y no se modelan disponibilidad de préstamo, dividendos, impuestos ni slippage real.
+Top N long y bottom N short, Markowitz-LedoitWolf por cada lado. Proxy de retorno: score menos su mínimo más `1e-6`, invirtiendo el score del lado short. Covarianza: últimas 253 filas de precios disponibles, mínimo 60 retornos, columnas con al menos 90% válido, forward-fill de precio limitado a 10 filas y retornos restantes nulos llevados a 0, más ridge `1e-6`. Se resuelve la matriz, se recortan pesos negativos y se redistribuye proporcionalmente respetando cap por nombre `3/N` dentro de cada lado. Los nombres sin covarianza reciben `1/N`; si no se puede estimar, fallback equal weight. N es el tamaño de la canasta candidata: pueden quedar pesos cero.
 
-La referencia completa P50, previamente auditada, tiene Sharpe `0.9319991858474546`, CAGR `0.18307401457275918`, drawdown `-0.29696088431976764` y NAV final `7317270.965091507` en 2.978 sesiones. Son referencias de una corrida previa, no una promesa de resultado con datos o motor distintos. Esta integración valida generación del score; no realiza una nueva matriz completa de backtests.
+Es la reconstrucción local documentada de Markowitz v2, **no una afirmación de igualdad con el wrapper original de Clara en Windows**. Sus resultados Markowitz no habían coincidido; las referencias de la presentación fueron recalculadas homogéneamente con estos adaptadores. El scorer de Luis permanece intacto.
+
+Para el punto 3 el short objetivo es `0.30 * clip((stress - 75) / 25, 0, 1)` y long `1 - short`. Target bruto 1 y neto `1 - 2*short`, antes de reservar costos. Ni el estrés original ni los criterios estrictos alteran esta fórmula. Las variantes mensuales también permiten LO, P50/P75/P90, otros tamaños y topes para repetir las comparaciones anteriores.
+
+El broker nativo aplica comisiones 10 pb del nocional y préstamo corto 2% anual ACT/360, con lotes/ticks `1e-8`, caja sin interés y headroom técnico de leverage 1,5. Ese headroom permite rebalancear un bruto que derivó por precios; **no es leverage objetivo**. Se reserva caja por las comisiones previstas con un factor común y buffer numérico `1e-8 NAV`, sin alterar el NAV calculado por el motor.
+
+Si falta una cotización de entrada, su proporción queda en caja: no hay reemplazo ni renormalización oportunista. Las posiciones existentes sin precio negociable se congelan para sizing; el motor mantiene el último precio y fuerza cierre tras 10 sesiones sin datos con recovery 1. El cierre forzado nativo omite comisiones; no se corrige retrospectivamente. No se modelan disponibilidad/locate de préstamo, dividendos, impuestos ni slippage real.
+
+Sharpe: media de retornos diarios / desviación muestral × raíz de 252, RF 0, incluyendo el costo del primer día. CAGR: calendario ACT/365.25 desde la caja inicial fechada al último cierre previo al primer score; la variante de 252 sesiones queda separada.
+
+Ver [políticas, comandos y controles de reproducción](rebalance.md).

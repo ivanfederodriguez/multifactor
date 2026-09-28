@@ -4,16 +4,21 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "multifactor-luis-dqi"
-version = "0.1.0"
-description = "Shared Luis DQI v2 score generation for PROMETHEUS Base B"
+version = "0.2.0"
+description = "Shared Luis DQI v2 scoring and external-qbacktest rebalance adapters"
 requires-python = ">=3.11,<3.12"
 dependencies = ["numpy==2.4.6", "pandas==3.0.3", "pyarrow==24.0.0"]
 
+[project.optional-dependencies]
+backtest = ["scikit-learn==1.9.0"]
+
 [project.scripts]
 luis-dqi = "luis_dqi.cli:main"
+luis-dqi-backtest = "luis_dqi.backtest.runner:main"
 
 [tool.setuptools.packages.find]
 include = ["luis_dqi*"]
 
 [tool.setuptools.package-data]
 luis_dqi = ["provenance.json"]
+"luis_dqi.backtest" = ["provenance.json"]

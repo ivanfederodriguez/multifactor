@@ -1,6 +1,6 @@
-# Multifactor: shared Luis DQI v2 score engine
+# Multifactor: shared Luis DQI v2 model
 
-Este repositorio contiene únicamente el **generador de scores de Luis para Clara e Iván**, su configuración, pruebas y documentación de integración.
+Este repositorio contiene únicamente el **modelo de Luis para Clara e Iván**: generador de scores, asignación Markowitz y adaptadores de rebalanceo para un motor qbacktest autorizado y separado. No contiene el dashboard, otros modelos, datos privados ni el código del motor.
 
 ## Instalar el scorer
 
@@ -46,11 +46,22 @@ El pipeline es extracción → inversión de señales donde menor es mejor → w
 
 Los archivos de cálculo y el adaptador coinciden con los previamente utilizados, salvo **dos imports relativos** para convertirlos en paquete. Una prueba reconstruye los bytes originales y verifica sus SHA-256. Las validaciones nuevas del comando rechazan entradas vacías, claves nulas/duplicadas y sobrescrituras accidentales; no alteran los cálculos sobre entradas válidas.
 
-## Separación de score y backtest
+## Backtests y rebalanceo compartidos
 
-Este módulo **genera scores**, no ejecuta qbacktest ni decide cuándo abrir shorts. Para reproducir los experimentos con short, usar esta salida como `--scores-path` en el runner del paquete de Clara. El motor qbacktest y su licencia siguen separados. Ver [contrato de integración](docs/luis_dqi_integration.md).
+El score no cambia al agregar shorts o rebalanceos. El nuevo comando `python -m luis_dqi.backtest` consume la cinta y ejecuta las estrategias públicas sobre **qbacktest sin modificarlo**. El checkout autorizado del motor se pasa con `--qbacktest-root`; se exige el commit `a9f0edbc1d0fdc3e318ca9e991027b4131fcf301` y código del motor sin cambios.
 
-Hay una plantilla de GitHub Actions en `ci/luis-score.workflow.yml`. No está activa: la credencial utilizada para publicar no permite crear workflows. Para habilitarla, un administrador con los permisos correspondientes puede copiarla a `.github/workflows/luis-score.yml`. Las pruebas locales se ejecutan con el comando de instalación anterior.
+Instalar en el entorno autorizado que ya tiene las dependencias de qbacktest:
+
+```bash
+python -m pip install -e ".[backtest]"
+python -m luis_dqi.backtest --help
+```
+
+Se incluyen las políticas `monthly`, `stress_original`, `drift_original` y los siete umbrales estrictos usados en la presentación. **Las políticas de eventos mantienen Top 30, P75 y tope short 30%; sólo cambia cuándo rebalancear.** Los datos y el motor se suministran por un canal autorizado. No alcanza con clonar este repo para tenerlos.
+
+Ver [cómo reproducir y comparar las políticas](docs/rebalance.md) y [el contrato con qbacktest](docs/luis_dqi_integration.md). Las rutas son argumentos explícitos, funcionan también en Windows y los resultados existentes nunca se sobrescriben.
+
+Hay una plantilla de GitHub Actions en `ci/luis-score.workflow.yml`. No está activa: la credencial utilizada para publicar no permite crear workflows. Para habilitarla, un administrador con los permisos correspondientes puede copiarla a `.github/workflows/luis-score.yml`. Las pruebas locales se ejecutan con el comando de instalación anterior. Para incluir las pruebas unitarias del adaptador nativo, definir `LUIS_QBACKTEST_ROOT` con la ruta al motor autorizado; sin ese motor esas pruebas se omiten y las de lógica, procedencia y scorer siguen disponibles.
 
 ## Datos y confidencialidad
 

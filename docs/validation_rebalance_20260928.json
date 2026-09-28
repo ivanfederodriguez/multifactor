@@ -1,0 +1,132 @@
+{
+  "generated_utc": "2026-09-28 12:27:30 UTC",
+  "repository": "https://github.com/ivanfederodriguez/multifactor",
+  "branch": "main",
+  "scope": "Portable packaging of the frozen Luis rebalance adapters; full-period parity on the original macOS host, not cross-machine certification.",
+  "native_engine": "External, unmodified qbacktest",
+  "engine_commit": "a9f0edbc1d0fdc3e318ca9e991027b4131fcf301",
+  "unit_tests": {
+    "source_checkout": 29,
+    "installed_wheel": 29,
+    "failed": 0,
+    "skipped_with_authorized_engine": 0
+  },
+  "economic_definition_ast_checks": 28,
+  "native_full_reruns": {
+    "monthly": {
+      "status": "verified",
+      "policy": "monthly",
+      "sessions": 2978,
+      "monthly_events": 142,
+      "events": 142,
+      "extra_events": 0,
+      "metrics": {
+        "sharpe_standard": 1.0840617540155493,
+        "cagr": 0.20724136242074986,
+        "annual_volatility": 0.19094138744437503,
+        "max_drawdown": -0.2272862533986132,
+        "final_nav": 9296443.152985957,
+        "total_fees": 491872.5064489745,
+        "total_borrow": 35269.017507761535,
+        "trades": 4305
+      },
+      "full_series_comparison": {
+        "daily.csv": "exact",
+        "daily_nav.csv": "exact",
+        "trades.csv": "exact",
+        "weights.csv": "exact",
+        "target_weights.csv": "exact",
+        "rebalance_audit.csv": "exact"
+      },
+      "input_hashes": {
+        "scores": "1837df55bed8eb50b05399a12e81a0a9c7a98308d66d5cd46b259a4722720996",
+        "prices": "4bd8a70cd04ae5e6a984fee0a7f525474222071b0172b92ec256adf622308854",
+        "macro": "7a8d2f2e0c79b8dfcbd4e2626630b8a0c8cfd6e92a536dedda821fb986bb5e42"
+      },
+      "engine_commit": "a9f0edbc1d0fdc3e318ca9e991027b4131fcf301"
+    },
+    "stress_gap20": {
+      "status": "verified",
+      "policy": "stress_gap20",
+      "sessions": 2978,
+      "monthly_events": 142,
+      "events": 152,
+      "extra_events": 10,
+      "metrics": {
+        "sharpe_standard": 1.087746558285963,
+        "cagr": 0.2067064347622276,
+        "annual_volatility": 0.189662589829285,
+        "max_drawdown": -0.2398316150564983,
+        "final_nav": 9247794.520581154,
+        "total_fees": 503897.2611261736,
+        "total_borrow": 36277.04309698093,
+        "trades": 4613
+      },
+      "full_series_comparison": {
+        "daily.csv": "exact",
+        "daily_nav.csv": "exact",
+        "trades.csv": "exact",
+        "weights.csv": "exact",
+        "target_weights.csv": "exact",
+        "rebalance_audit.csv": "exact"
+      },
+      "input_hashes": {
+        "scores": "1837df55bed8eb50b05399a12e81a0a9c7a98308d66d5cd46b259a4722720996",
+        "prices": "4bd8a70cd04ae5e6a984fee0a7f525474222071b0172b92ec256adf622308854",
+        "macro": "7a8d2f2e0c79b8dfcbd4e2626630b8a0c8cfd6e92a536dedda821fb986bb5e42"
+      },
+      "engine_commit": "a9f0edbc1d0fdc3e318ca9e991027b4131fcf301"
+    },
+    "drift_10_20": {
+      "status": "verified",
+      "policy": "drift_10_20",
+      "sessions": 2978,
+      "monthly_events": 142,
+      "events": 172,
+      "extra_events": 30,
+      "metrics": {
+        "sharpe_standard": 1.0929433271195863,
+        "cagr": 0.20846263646699836,
+        "annual_volatility": 0.19018041306856454,
+        "max_drawdown": -0.21877293816235843,
+        "final_nav": 9408390.439361308,
+        "total_fees": 540764.0483937706,
+        "total_borrow": 36577.51478681678,
+        "trades": 5158
+      },
+      "full_series_comparison": {
+        "daily.csv": "exact",
+        "daily_nav.csv": "exact",
+        "trades.csv": "exact",
+        "weights.csv": "exact",
+        "target_weights.csv": "exact",
+        "rebalance_audit.csv": "exact"
+      },
+      "input_hashes": {
+        "scores": "1837df55bed8eb50b05399a12e81a0a9c7a98308d66d5cd46b259a4722720996",
+        "prices": "4bd8a70cd04ae5e6a984fee0a7f525474222071b0172b92ec256adf622308854",
+        "macro": "7a8d2f2e0c79b8dfcbd4e2626630b8a0c8cfd6e92a536dedda821fb986bb5e42"
+      },
+      "engine_commit": "a9f0edbc1d0fdc3e318ca9e991027b4131fcf301"
+    }
+  },
+  "historical_completed_policies_verified": [
+    "monthly",
+    "stress_original",
+    "stress_gap5",
+    "stress_gap10",
+    "stress_gap15",
+    "stress_gap20",
+    "drift_original",
+    "drift_7p5_15",
+    "drift_10_20",
+    "drift_15_30"
+  ],
+  "not_published": [
+    "Private score/price/macro datasets",
+    "qbacktest engine source",
+    "Raw backtest outputs"
+  ],
+  "short_mandate_unchanged": "Top 30 / Markowitz / P75 / short cap 30%",
+  "scorer_calculations_changed": false
+}
